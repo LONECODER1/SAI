@@ -1,6 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import { ShieldCheck, ArrowLeft, Info, Users } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Info, Users, CreditCard } from "lucide-react";
 import Link from "next/link";
 
 import PageHeader from "@/components/page-header";
@@ -42,6 +42,11 @@ const AdminLayout = async ({ children }) => {
           <TabsTrigger value="doctors" className="flex-1 justify-start px-4 py-3 w-full">
             <Users className="h-4 w-4 mr-2 inline-block" />
             <span>Doctors</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="payouts" className="flex-1 justify-start px-4 py-3 w-full">
+            <CreditCard className="h-4 w-4 mr-2 inline-block" />
+            <span>Payout Requests</span>
           </TabsTrigger>
         </TabsList>
 

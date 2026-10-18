@@ -125,3 +125,160 @@ export async function updateDoctorActiveStatus(formData) {
     throw new Error(`Failed to update doctor status: ${error.message}`);
   }
 }
+
+export async function getPendingPayouts() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const pendingPayouts = await db.payout.findMany({
+      where: {
+        status: "PROCESSING",
+      },
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            specialty: true,
+            credits: true,
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return { payouts: pendingPayouts };
+  } catch (error) {
+    console.error("Failed to fetch pending payouts:", error);
+    throw new Error("Failed to fetch pending payouts: " + error.message);
+  }
+}
+
+export async function getProcessedPayouts() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const processedPayouts = await db.payout.findMany({
+      where: {
+        status: "PROCESSED",
+      },
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            specialty: true,
+            credits: true,
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        processedAt: "desc",
+      },
+    });
+
+    return { payouts: processedPayouts };
+  } catch (error) {
+    console.error("Failed to fetch processed payouts:", error);
+    throw new Error("Failed to fetch processed payouts: " + error.message);
+  }
+}
+
+export async function approvePayout(formData) {
+  const { userId } = await auth();
+  if (!userId) {
+    throw new Error("Unauthorized");
+  }
+
+  const adminUser = await db.user.findUnique({
+    where: {
+      clerkUserId: userId,
+    },
+  });
+
+  if (adminUser?.role !== "ADMIN") {
+    throw new Error("Unauthorized: Admin access required");
+  }
+
+  const payoutId = formData.get("payoutId");
+  if (!payoutId) {
+    throw new Error("Payout ID is required");
+  }
+
+  try {
+    const payout = await db.payout.findUnique({
+      where: {
+        id: payoutId,
+      },
+      include: {
+        doctor: true,
+      },
+    });
+
+    if (!payout) {
+      throw new Error("Payout request not found");
+    }
+
+    if (payout.status === "PROCESSED") {
+      throw new Error("Payout has already been processed");
+    }
+
+    if (!payout.doctor) {
+      throw new Error("Doctor not found for this payout");
+    }
+
+    if (payout.doctor.credits < payout.credits) {
+      throw new Error(
+        `Doctor currently has ${payout.doctor.credits} credits, but this payout requires ${payout.credits} credits`
+      );
+    }
+
+    const updatedPayout = await db.$transaction(async (tx) => {
+      // 1. Deduct credits from doctor
+      await tx.user.update({
+        where: { id: payout.doctorId },
+        data: {
+          credits: {
+            decrement: payout.credits,
+          },
+        },
+      });
+
+      // 2. Record credit transaction for audit trail
+      await tx.creditTransaction.create({
+        data: {
+          userId: payout.doctorId,
+          amount: -payout.credits,
+          type: "ADMIN_ADJUSTMENT",
+        },
+      });
+
+      // 3. Update payout status to PROCESSED
+      const res = await tx.payout.update({
+        where: { id: payoutId },
+        data: {
+          status: "PROCESSED",
+          processedAt: new Date(),
+          processedBy: adminUser.name || adminUser.email || adminUser.id,
+        },
+      });
+
+      return res;
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/doctor");
+    return { success: true, payout: updatedPayout };
+  } catch (error) {
+    console.error("Failed to approve payout:", error);
+    throw new Error(`Failed to approve payout: ${error.message}`);
+  }
+}
