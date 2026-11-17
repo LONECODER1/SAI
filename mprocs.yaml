@@ -7,7 +7,7 @@ procs:
     autostart: true
 
   prisma-studio:
-    shell: "npx prisma studio --port 5555"
+    shell: "npm run db:studio"
     autostart: true
 
   test-suite:
