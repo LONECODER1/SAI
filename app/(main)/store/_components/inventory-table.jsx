@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Search,
   Plus,
   Minus,
@@ -27,6 +34,12 @@ import {
   Edit2,
   Trash2,
   Pill,
+  Download,
+  Copy,
+  ArrowUpDown,
+  Boxes,
+  DollarSign,
+  TrendingDown,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -36,6 +49,7 @@ import {
   toggleFlashSaleAction,
 } from "@/actions/store";
 import useFetch from "@/hooks/use-fetch";
+import AddProductModal from "./add-product-modal";
 
 const CATEGORIES = [
   "ALL",
@@ -54,42 +68,67 @@ export default function InventoryTable({ products = [], storeId }) {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL"); // ALL, CRITICAL, APPROACHING, LOW_STOCK, FLASH, SAFE
+  const [sortBy, setSortBy] = useState("expiry_asc"); // expiry_asc, stock_asc, stock_desc, price_asc, price_desc, name_asc
   const [updatingId, setUpdatingId] = useState(null);
 
   // Edit Modal State
   const [editProduct, setEditProduct] = useState(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
+  // Clone / New Batch Modal State
+  const [cloneData, setCloneData] = useState(null);
+  const [isCloneOpen, setIsCloneOpen] = useState(false);
+
   const { fn: updateStock } = useFetch(updateProductStockAction);
   const { fn: updateDetails, loading: editLoading } = useFetch(updateProductDetailsAction);
   const { fn: deleteProduct, loading: deleteLoading } = useFetch(deleteProductAction);
   const { fn: toggleFlashSale } = useFetch(toggleFlashSaleAction);
 
-  // Filtered products
-  const filteredProducts = products.filter((item) => {
-    const matchesSearch =
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      (item.genericName && item.genericName.toLowerCase().includes(search.toLowerCase())) ||
-      (item.batchNumber && item.batchNumber.toLowerCase().includes(search.toLowerCase()));
+  // Filter products
+  const filteredProducts = products
+    .filter((item) => {
+      const matchesSearch =
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        (item.genericName && item.genericName.toLowerCase().includes(search.toLowerCase())) ||
+        (item.batchNumber && item.batchNumber.toLowerCase().includes(search.toLowerCase()));
 
-    const matchesCategory =
-      selectedCategory === "ALL" || item.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === "ALL" || item.category === selectedCategory;
 
-    let matchesStatus = true;
-    if (statusFilter === "CRITICAL") {
-      matchesStatus = item.evaluatedExpiryStatus === "CRITICAL_EXPIRY";
-    } else if (statusFilter === "APPROACHING") {
-      matchesStatus = item.evaluatedExpiryStatus === "APPROACHING_EXPIRY";
-    } else if (statusFilter === "LOW_STOCK") {
-      matchesStatus = item.isLowStock;
-    } else if (statusFilter === "FLASH") {
-      matchesStatus = item.isFlashSale;
-    } else if (statusFilter === "SAFE") {
-      matchesStatus = item.evaluatedExpiryStatus === "SAFE";
-    }
+      let matchesStatus = true;
+      if (statusFilter === "CRITICAL") {
+        matchesStatus = item.evaluatedExpiryStatus === "CRITICAL_EXPIRY";
+      } else if (statusFilter === "APPROACHING") {
+        matchesStatus = item.evaluatedExpiryStatus === "APPROACHING_EXPIRY";
+      } else if (statusFilter === "LOW_STOCK") {
+        matchesStatus = item.isLowStock;
+      } else if (statusFilter === "FLASH") {
+        matchesStatus = item.isFlashSale;
+      } else if (statusFilter === "SAFE") {
+        matchesStatus = item.evaluatedExpiryStatus === "SAFE";
+      }
 
-    return matchesSearch && matchesCategory && matchesStatus;
-  });
+      return matchesSearch && matchesCategory && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (sortBy === "expiry_asc") {
+        const dateA = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+        const dateB = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+        return dateA - dateB;
+      }
+      if (sortBy === "stock_asc") return a.stockQuantity - b.stockQuantity;
+      if (sortBy === "stock_desc") return b.stockQuantity - a.stockQuantity;
+      if (sortBy === "price_asc") return a.price - b.price;
+      if (sortBy === "price_desc") return b.price - a.price;
+      if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+      return 0;
+    });
+
+  // Inventory KPI calculations
+  const totalUnits = products.reduce((sum, p) => sum + (p.stockQuantity || 0), 0);
+  const totalValuation = products.reduce((sum, p) => sum + (p.price || 0) * (p.stockQuantity || 0), 0);
+  const lowStockCount = products.filter((p) => p.isLowStock).length;
+  const criticalExpiryCount = products.filter((p) => p.evaluatedExpiryStatus === "CRITICAL_EXPIRY").length;
 
   const handleStockAdjust = async (productId, currentStock, delta) => {
     const newStock = Math.max(0, currentStock + delta);
@@ -143,6 +182,24 @@ export default function InventoryTable({ products = [], storeId }) {
     setIsEditOpen(true);
   };
 
+  const openCloneModal = (product) => {
+    setCloneData({
+      name: product.name,
+      genericName: product.genericName || "",
+      category: product.category || "General Healthcare",
+      dosageForm: product.dosageForm || "Tablet",
+      strength: product.strength || "",
+      price: product.price,
+      mrp: product.mrp || product.price,
+      stockQuantity: 30,
+      safetyStock: product.safetyStock || 15,
+      maxStockCap: product.maxStockCap || 120,
+      imageUrl: product.imageUrl || "",
+      description: product.description || "",
+    });
+    setIsCloneOpen(true);
+  };
+
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!editProduct) return;
@@ -184,38 +241,130 @@ export default function InventoryTable({ products = [], storeId }) {
     }
   };
 
+  const handleExportCSV = () => {
+    if (products.length === 0) {
+      toast.info("No products to export");
+      return;
+    }
+
+    const headers = [
+      "Name",
+      "Generic Formula",
+      "Category",
+      "Dosage Form",
+      "Strength",
+      "Batch Number",
+      "Price",
+      "MRP",
+      "Stock Units",
+      "Safety Stock",
+      "Expiry Date",
+      "Expiry Status",
+      "Flash Sale",
+    ];
+
+    const rows = products.map((p) => [
+      `"${p.name.replace(/"/g, '""')}"`,
+      `"${(p.genericName || "").replace(/"/g, '""')}"`,
+      `"${p.category || ""}"`,
+      `"${p.dosageForm || ""}"`,
+      `"${p.strength || ""}"`,
+      `"${p.batchNumber || ""}"`,
+      p.price,
+      p.mrp || p.price,
+      p.stockQuantity,
+      p.safetyStock,
+      p.expiryDate ? new Date(p.expiryDate).toISOString().split("T")[0] : "",
+      p.evaluatedExpiryStatus || "SAFE",
+      p.isFlashSale ? "YES" : "NO",
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `CareConnect_Inventory_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Inventory exported to CSV successfully!");
+  };
+
   return (
     <div className="space-y-6">
-      {/* Controls: Search & Category Chips */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by brand, generic formula, or batch #..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-card border-teal-900/30"
-          />
+      {/* 4 Inventory Health Ribbon Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
+          <span className="text-[11px] text-muted-foreground block">Active Listed SKUs</span>
+          <span className="text-xl font-bold text-white">{products.length}</span>
+          <span className="text-[10px] text-teal-400 block mt-0.5">In catalog</span>
         </div>
 
-        {/* Categories */}
-        <div className="flex gap-1.5 overflow-x-auto w-full md:w-auto pb-1">
-          {CATEGORIES.slice(0, 6).map((cat) => (
-            <Button
-              key={cat}
-              variant={selectedCategory === cat ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(cat)}
-              className={
-                selectedCategory === cat
-                  ? "bg-teal-600 hover:bg-teal-700 text-white text-xs"
-                  : "border-teal-900/30 text-muted-foreground hover:text-white text-xs"
-              }
-            >
-              {cat}
-            </Button>
-          ))}
+        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
+          <span className="text-[11px] text-muted-foreground block">Physical Units in Stock</span>
+          <span className="text-xl font-bold text-teal-300">{totalUnits}</span>
+          <span className="text-[10px] text-muted-foreground block mt-0.5">Across all batches</span>
         </div>
+
+        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
+          <span className="text-[11px] text-muted-foreground block">Inventory Valuation</span>
+          <span className="text-xl font-bold text-white">₹{Math.round(totalValuation).toLocaleString()}</span>
+          <span className="text-[10px] text-teal-400 block mt-0.5">At retail pricing</span>
+        </div>
+
+        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
+          <span className="text-[11px] text-muted-foreground block">Stockout / Expiry Risk</span>
+          <span className="text-xl font-bold text-amber-400">
+            {lowStockCount + criticalExpiryCount}{" "}
+            <span className="text-xs font-normal text-muted-foreground">alerts</span>
+          </span>
+          <span className="text-[10px] text-amber-300 block mt-0.5">
+            {lowStockCount} low stock • {criticalExpiryCount} critical expiry
+          </span>
+        </div>
+      </div>
+
+      {/* Controls: Search, Sort & Category Chips */}
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by brand, generic formula, or batch #..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-card border-teal-900/30 text-xs"
+            />
+          </div>
+
+          {/* Sort Selector */}
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-48 bg-card border-teal-900/30 text-xs">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-teal-400" />
+              <SelectValue placeholder="Sort By" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-teal-900/40 text-xs">
+              <SelectItem value="expiry_asc">Expiry: Soonest First</SelectItem>
+              <SelectItem value="stock_asc">Stock: Lowest First</SelectItem>
+              <SelectItem value="stock_desc">Stock: Highest First</SelectItem>
+              <SelectItem value="price_asc">Price: Low to High</SelectItem>
+              <SelectItem value="price_desc">Price: High to Low</SelectItem>
+              <SelectItem value="name_asc">Name: A to Z</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Export to CSV Action */}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleExportCSV}
+          className="border-teal-800/40 text-teal-300 hover:bg-teal-950 text-xs gap-1.5 shrink-0"
+        >
+          <Download className="h-3.5 w-3.5" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Filter by Status Chips */}
@@ -320,7 +469,7 @@ export default function InventoryTable({ products = [], storeId }) {
                 </div>
 
                 {item.genericName && (
-                  <p className="text-xs text-teal-400/90 font-medium">
+                  <p className="text-xs text-teal-400/90 font-medium font-mono">
                     Generic Formula: {item.genericName}
                   </p>
                 )}
@@ -338,40 +487,37 @@ export default function InventoryTable({ products = [], storeId }) {
 
               {/* Status Badges */}
               <div className="flex flex-wrap items-center gap-2">
-                {/* Expiry Badge */}
                 {item.evaluatedExpiryStatus === "CRITICAL_EXPIRY" && (
-                  <Badge className="bg-red-900/40 border border-red-700/50 text-red-300 gap-1 animate-pulse">
+                  <Badge className="bg-red-900/40 border border-red-700/50 text-red-300 gap-1 animate-pulse text-xs">
                     <AlertTriangle className="h-3 w-3" />
                     Critical: {item.expiryDaysRemaining}d left
                   </Badge>
                 )}
                 {item.evaluatedExpiryStatus === "APPROACHING_EXPIRY" && (
-                  <Badge className="bg-amber-900/30 border border-amber-700/40 text-amber-300 gap-1">
+                  <Badge className="bg-amber-900/30 border border-amber-700/40 text-amber-300 gap-1 text-xs">
                     <Calendar className="h-3 w-3" />
                     Expiry: {item.expiryDaysRemaining}d
                   </Badge>
                 )}
                 {item.evaluatedExpiryStatus === "SAFE" && (
-                  <Badge variant="outline" className="border-emerald-800/40 text-emerald-400">
+                  <Badge variant="outline" className="border-emerald-800/40 text-emerald-400 text-xs">
                     Safe ({item.expiryDaysRemaining}d)
                   </Badge>
                 )}
                 {item.evaluatedExpiryStatus === "EXPIRED" && (
-                  <Badge className="bg-red-950 border border-red-800 text-red-400">
+                  <Badge className="bg-red-950 border border-red-800 text-red-400 text-xs">
                     <XCircle className="h-3 w-3 mr-1" /> Expired
                   </Badge>
                 )}
 
-                {/* Low Stock Badge */}
                 {item.isLowStock && (
-                  <Badge className="bg-amber-900/30 border border-amber-800 text-amber-300">
+                  <Badge className="bg-amber-900/30 border border-amber-800 text-amber-300 text-xs">
                     Low Stock (&le; {item.safetyStock})
                   </Badge>
                 )}
 
-                {/* Flash Sale Active */}
                 {item.isFlashSale && (
-                  <Badge className="bg-amber-500/20 border border-amber-500/50 text-amber-300 gap-1 font-semibold">
+                  <Badge className="bg-amber-500/20 border border-amber-500/50 text-amber-300 gap-1 font-semibold text-xs">
                     <Zap className="h-3 w-3 text-amber-400 fill-amber-400" />
                     50% Flash Clearance
                   </Badge>
@@ -405,14 +551,15 @@ export default function InventoryTable({ products = [], storeId }) {
                   )}
                 </div>
 
-                {/* Stock Incrementor */}
-                <div className="flex items-center gap-1.5 bg-muted/30 p-1 rounded-lg border border-teal-900/30">
+                {/* Stock Incrementor with Fast Jump Buttons */}
+                <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-teal-900/30">
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-muted-foreground hover:text-white"
                     disabled={updatingId === item.id || item.stockQuantity <= 0}
                     onClick={() => handleStockAdjust(item.id, item.stockQuantity, -1)}
+                    title="Decrease 1 unit"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </Button>
@@ -429,9 +576,19 @@ export default function InventoryTable({ products = [], storeId }) {
                     className="h-7 w-7 text-muted-foreground hover:text-white"
                     disabled={updatingId === item.id}
                     onClick={() => handleStockAdjust(item.id, item.stockQuantity, +1)}
+                    title="Increase 1 unit"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </Button>
+                  <button
+                    type="button"
+                    disabled={updatingId === item.id}
+                    onClick={() => handleStockAdjust(item.id, item.stockQuantity, +10)}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground hover:text-white border border-teal-900/30 font-mono"
+                    title="Quick add 10 units"
+                  >
+                    +10
+                  </button>
                 </div>
 
                 {/* Flash Clearance Toggle */}
@@ -448,145 +605,198 @@ export default function InventoryTable({ products = [], storeId }) {
                     }
                   >
                     <Zap className="h-3 w-3" />
-                    {item.isFlashSale ? "Cancel Flash" : "Flash @ 50%"}
+                    {item.isFlashSale ? "Exit Flash Sale" : "Flash Sale @ 50%"}
                   </Button>
                 )}
 
-                {/* Edit & Delete Action Buttons */}
-                <div className="flex items-center gap-1">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => openEditModal(item)}
-                    className="h-8 w-8 text-muted-foreground hover:text-teal-300"
-                    title="Edit Medicine Details"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => handleDeleteProduct(item.id, item.name)}
-                    disabled={updatingId === item.id}
-                    className="h-8 w-8 text-muted-foreground hover:text-red-400"
-                    title="Delete Medicine"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                {/* Clone / Add New Batch Button */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-teal-300 hover:bg-teal-950/30"
+                  onClick={() => openCloneModal(item)}
+                  title="Clone details into a new batch"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+
+                {/* Edit Button */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-white"
+                  onClick={() => openEditModal(item)}
+                  title="Edit medicine details"
+                >
+                  <Edit2 className="h-3.5 w-3.5" />
+                </Button>
+
+                {/* Delete Button */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/20"
+                  onClick={() => handleDeleteProduct(item.id, item.name)}
+                  title="Remove from inventory"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Edit Medicine Dialog */}
+      {/* Edit Medicine Modal */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto bg-card border-teal-900/40">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
-              <Pill className="h-5 w-5 text-teal-400" />
+            <DialogTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Edit2 className="h-5 w-5 text-teal-400" />
               Edit Medicine Details
             </DialogTitle>
             <DialogDescription>
-              Update formulation, retail pricing, stock quantity, and batch expiration.
+              Update pharmaceutical specifications, batch number, pricing, or expiry date.
             </DialogDescription>
           </DialogHeader>
 
           {editProduct && (
             <form onSubmit={handleEditSubmit} className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Brand Name *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-name">Medicine Brand Name *</Label>
                   <Input
+                    id="edit-name"
                     value={editProduct.name}
-                    onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, name: e.target.value })
+                    }
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Generic Formula</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-genericName">Generic Salt / Molecule</Label>
                   <Input
+                    id="edit-genericName"
                     value={editProduct.genericName}
-                    onChange={(e) => setEditProduct({ ...editProduct, genericName: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, genericName: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Category</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-category">Category</Label>
                   <Input
+                    id="edit-category"
                     value={editProduct.category}
-                    onChange={(e) => setEditProduct({ ...editProduct, category: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, category: e.target.value })
+                    }
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Dosage Form</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-dosageForm">Dosage Form</Label>
                   <Input
+                    id="edit-dosageForm"
                     value={editProduct.dosageForm}
-                    onChange={(e) => setEditProduct({ ...editProduct, dosageForm: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Strength</Label>
-                  <Input
-                    value={editProduct.strength}
-                    onChange={(e) => setEditProduct({ ...editProduct, strength: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, dosageForm: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Selling Price (₹) *</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-strength">Strength / Pack Size</Label>
                   <Input
+                    id="edit-strength"
+                    value={editProduct.strength}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, strength: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-batch">Batch Number</Label>
+                  <Input
+                    id="edit-batch"
+                    value={editProduct.batchNumber}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, batchNumber: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-price">Selling Price (₹) *</Label>
+                  <Input
+                    id="edit-price"
                     type="number"
-                    step="0.01"
+                    step="any"
                     value={editProduct.price}
-                    onChange={(e) => setEditProduct({ ...editProduct, price: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, price: e.target.value })
+                    }
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">MRP (₹)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-mrp">MRP (₹)</Label>
                   <Input
+                    id="edit-mrp"
                     type="number"
-                    step="0.01"
+                    step="any"
                     value={editProduct.mrp}
-                    onChange={(e) => setEditProduct({ ...editProduct, mrp: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, mrp: e.target.value })
+                    }
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Current Stock</Label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-stock">Stock Units</Label>
                   <Input
+                    id="edit-stock"
                     type="number"
                     value={editProduct.stockQuantity}
-                    onChange={(e) => setEditProduct({ ...editProduct, stockQuantity: e.target.value })}
-                    required
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, stockQuantity: e.target.value })
+                    }
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">Batch Number</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-safety">Safety Stock</Label>
                   <Input
-                    value={editProduct.batchNumber}
-                    onChange={(e) => setEditProduct({ ...editProduct, batchNumber: e.target.value })}
+                    id="edit-safety"
+                    type="number"
+                    value={editProduct.safetyStock}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, safetyStock: e.target.value })
+                    }
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Expiry Date</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-expiry">Expiry Date</Label>
                   <Input
+                    id="edit-expiry"
                     type="date"
                     value={editProduct.expiryDate}
-                    onChange={(e) => setEditProduct({ ...editProduct, expiryDate: e.target.value })}
+                    onChange={(e) =>
+                      setEditProduct({ ...editProduct, expiryDate: e.target.value })
+                    }
                   />
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-3 border-t border-muted/20">
+              <div className="flex justify-end gap-3 pt-3">
                 <Button
                   type="button"
                   variant="outline"
@@ -598,16 +808,31 @@ export default function InventoryTable({ products = [], storeId }) {
                 <Button
                   type="submit"
                   disabled={editLoading}
-                  className="bg-teal-600 hover:bg-teal-700 text-white font-semibold"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
-                  {editLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                  Save Changes
+                  {editLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </Button>
               </div>
             </form>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Clone / New Batch Modal */}
+      {cloneData && (
+        <AddProductModal
+          storeId={storeId}
+          initialData={cloneData}
+          isOpen={isCloneOpen}
+          onOpenChange={setIsCloneOpen}
+        />
+      )}
     </div>
   );
 }

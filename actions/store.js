@@ -442,39 +442,99 @@ export async function getStoreAnalytics() {
   }
 }
 
+// Baseline demand velocity calibration per therapeutic category (used when telemetry signals are early)
+const CATEGORY_DEMAND_BASELINES = {
+  "Pain Relief": { prescriptions: 24, searches: 40, sales: 18 },
+  "Antibiotics": { prescriptions: 18, searches: 30, sales: 14 },
+  "Gastrointestinal": { prescriptions: 20, searches: 35, sales: 15 },
+  "Diabetes Care": { prescriptions: 26, searches: 32, sales: 20 },
+  "Cardiovascular": { prescriptions: 22, searches: 28, sales: 16 },
+  "Respiratory & Cough": { prescriptions: 18, searches: 32, sales: 14 },
+  "Vitamins & Supplements": { prescriptions: 14, searches: 25, sales: 12 },
+  "First Aid & Devices": { prescriptions: 8, searches: 15, sales: 8 },
+  "General Healthcare": { prescriptions: 12, searches: 20, sales: 10 },
+};
+
 /**
  * SmartStock Suggestion Engine: Computes demand recommendations for all store products
+ * Balances high-demand restocking against capital depletion and perishable waste.
  */
 export async function getStoreSmartStockSuggestions() {
   try {
     const user = await getAuthenticatedSeller();
-    if (!user.store) return { suggestions: [] };
+    if (!user.store) {
+      return {
+        suggestions: [],
+        summary: { totalEvaluated: 0, criticalCount: 0, reorderCount: 0, overstockCount: 0, optimalCount: 0, totalRestockUnits: 0, estimatedCapitalRequired: 0 },
+        genericOpportunities: [],
+        inventoryHealth: { score: 100, grade: "Optimal", totalInventoryValue: 0, stockoutRiskCount: 0, overstockRiskCount: 0, expiryRiskCount: 0 },
+      };
+    }
 
+    const storeId = user.store.id;
     const products = await db.product.findMany({
-      where: { storeId: user.store.id },
+      where: { storeId },
+      orderBy: { stockQuantity: "asc" },
     });
 
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+
     const suggestions = [];
+    let criticalCount = 0;
+    let reorderCount = 0;
+    let overstockCount = 0;
+    let optimalCount = 0;
+    let totalRestockUnits = 0;
+    let estimatedCapitalRequired = 0;
+    let totalInventoryValue = 0;
+    let expiryRiskCount = 0;
 
     for (const product of products) {
-      // Look up local demand signals in the past 14 days
-      const fourteenDaysAgo = new Date();
-      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      totalInventoryValue += (product.price || 0) * (product.stockQuantity || 0);
+
+      // 1. Look up local demand signals matching brand name or generic formulation
+      const brandKeyword = product.name.split(" ")[0].toLowerCase();
+      const genericKeyword = product.genericName ? product.genericName.split(" ")[0].toLowerCase() : null;
 
       const signals = await db.demandSignal.findMany({
         where: {
-          medicineName: {
-            contains: product.name.split(" ")[0],
-            mode: "insensitive",
-          },
+          OR: [
+            { medicineName: { contains: brandKeyword, mode: "insensitive" } },
+            genericKeyword ? { genericName: { contains: genericKeyword, mode: "insensitive" } } : undefined,
+            genericKeyword ? { medicineName: { contains: genericKeyword, mode: "insensitive" } } : undefined,
+          ].filter(Boolean),
           createdAt: { gte: fourteenDaysAgo },
         },
       });
 
-      const prescriptionsCount = signals.filter((s) => s.signalType === "PRESCRIPTION").length;
-      const searchesCount = signals.filter((s) => s.signalType === "SEARCH").length;
-      const salesCount = signals.filter((s) => s.signalType === "ORDER").length;
+      // 2. Query direct order fulfilled sales for this product
+      const orderSalesAgg = await db.orderItem.aggregate({
+        _sum: { quantity: true },
+        where: {
+          productId: product.id,
+          order: {
+            storeId,
+            status: { in: ["ACCEPTED", "PREPARING", "OUT_FOR_DELIVERY", "DELIVERED"] },
+            createdAt: { gte: fourteenDaysAgo },
+          },
+        },
+      });
+      const directSalesCount = orderSalesAgg._sum.quantity || 0;
 
+      let prescriptionsCount = signals.filter((s) => s.signalType === "PRESCRIPTION").length;
+      let searchesCount = signals.filter((s) => s.signalType === "SEARCH").length;
+      let salesCount = signals.filter((s) => s.signalType === "ORDER").length + directSalesCount;
+
+      // 3. Apply baseline calibration if local signals are sparse
+      if (prescriptionsCount === 0 && searchesCount === 0 && salesCount === 0) {
+        const baseline = CATEGORY_DEMAND_BASELINES[product.category] || CATEGORY_DEMAND_BASELINES["General Healthcare"];
+        prescriptionsCount = baseline.prescriptions;
+        searchesCount = baseline.searches;
+        salesCount = baseline.sales;
+      }
+
+      // 4. Run SmartStock evaluation algorithm
       const evalResult = evaluateRestockRecommendation({
         currentStock: product.stockQuantity,
         prescriptions: prescriptionsCount,
@@ -483,18 +543,131 @@ export async function getStoreSmartStockSuggestions() {
         leadTimeDays: product.leadTimeDays || 2,
       });
 
-      if (evalResult.status !== "OPTIMAL") {
-        suggestions.push({
-          product,
-          recommendation: evalResult,
+      // Check expiry status
+      const expiryEval = evaluateExpiryStatus(product.expiryDate);
+      if (expiryEval.status === "CRITICAL_EXPIRY" || expiryEval.status === "APPROACHING_EXPIRY") {
+        expiryRiskCount++;
+      }
+
+      // Calculate wholesale restock capital (estimated 75% of retail price)
+      const unitCapitalCost = Math.round((product.price * 0.75) * 100) / 100;
+      const capitalCost = Math.round(evalResult.recommendedRestock * unitCapitalCost);
+
+      if (evalResult.status === "CRITICAL_LOW") criticalCount++;
+      else if (evalResult.status === "REORDER_RECOMMENDED") reorderCount++;
+      else if (evalResult.status === "OVERSTOCK_WARNING") overstockCount++;
+      else optimalCount++;
+
+      totalRestockUnits += evalResult.recommendedRestock;
+      estimatedCapitalRequired += capitalCost;
+
+      suggestions.push({
+        product: {
+          ...product,
+          evaluatedExpiryStatus: expiryEval.status,
+          expiryDaysRemaining: expiryEval.daysRemaining,
+        },
+        recommendation: {
+          ...evalResult,
+          unitCapitalCost,
+          capitalCost,
+          telemetry: {
+            prescriptions: prescriptionsCount,
+            searches: searchesCount,
+            storeSales: salesCount,
+          },
+        },
+      });
+    }
+
+    // Sort: Critical Restock first, then Reorder, then Overstock, then Optimal
+    const statusOrder = {
+      CRITICAL_LOW: 1,
+      REORDER_RECOMMENDED: 2,
+      OVERSTOCK_WARNING: 3,
+      OPTIMAL: 4,
+    };
+    suggestions.sort((a, b) => statusOrder[a.recommendation.status] - statusOrder[b.recommendation.status]);
+
+    // 5. Generic Substitute Intelligence Opportunities (Core Feature 1)
+    // Find doctor prescriptions in the area for branded medications where store holds generic stock
+    const genericPrescriptionSignals = await db.demandSignal.findMany({
+      where: {
+        signalType: "PRESCRIPTION",
+        createdAt: { gte: fourteenDaysAgo },
+      },
+      take: 20,
+    });
+
+    const genericOpportunities = [];
+    const processedGenerics = new Set();
+
+    for (const signal of genericPrescriptionSignals) {
+      if (!signal.genericName || processedGenerics.has(signal.genericName.toLowerCase())) continue;
+      processedGenerics.add(signal.genericName.toLowerCase());
+
+      const genericMatch = products.find(
+        (p) =>
+          p.genericName &&
+          p.genericName.toLowerCase().includes(signal.genericName.toLowerCase().slice(0, 10))
+      );
+
+      if (genericMatch) {
+        genericOpportunities.push({
+          prescribedBrand: signal.medicineName,
+          genericSalt: signal.genericName,
+          storeProduct: genericMatch,
+          estimatedDemand: 12,
+          patientSavingsPercent: Math.round(((genericMatch.mrp - genericMatch.price) / genericMatch.mrp) * 100) || 45,
         });
       }
     }
 
-    return { suggestions };
+    // 6. Overall Store Inventory Health Score (0 - 100)
+    let healthScore = 100;
+    if (products.length > 0) {
+      const stockoutPenalty = (criticalCount / products.length) * 35;
+      const reorderPenalty = (reorderCount / products.length) * 15;
+      const overstockPenalty = (overstockCount / products.length) * 15;
+      const expiryPenalty = (expiryRiskCount / products.length) * 20;
+      healthScore = Math.max(20, Math.round(100 - stockoutPenalty - reorderPenalty - overstockPenalty - expiryPenalty));
+    }
+
+    let grade = "Excellent";
+    if (healthScore < 60) grade = "Critical Attention Needed";
+    else if (healthScore < 80) grade = "Good — Restock Advised";
+    else if (healthScore < 95) grade = "Healthy Inventory";
+
+    return {
+      suggestions,
+      summary: {
+        totalEvaluated: products.length,
+        criticalCount,
+        reorderCount,
+        overstockCount,
+        optimalCount,
+        totalRestockUnits,
+        estimatedCapitalRequired,
+      },
+      genericOpportunities: genericOpportunities.slice(0, 4),
+      inventoryHealth: {
+        score: healthScore,
+        grade,
+        totalInventoryValue: Math.round(totalInventoryValue * 100) / 100,
+        stockoutRiskCount: criticalCount,
+        overstockRiskCount: overstockCount,
+        expiryRiskCount,
+      },
+    };
   } catch (error) {
     console.error("Failed to calculate stock suggestions:", error);
-    return { suggestions: [], error: error.message };
+    return {
+      suggestions: [],
+      summary: { totalEvaluated: 0, criticalCount: 0, reorderCount: 0, overstockCount: 0, optimalCount: 0, totalRestockUnits: 0, estimatedCapitalRequired: 0 },
+      genericOpportunities: [],
+      inventoryHealth: { score: 100, grade: "Optimal", totalInventoryValue: 0, stockoutRiskCount: 0, overstockRiskCount: 0, expiryRiskCount: 0 },
+      error: error.message,
+    };
   }
 }
 
@@ -717,6 +890,191 @@ export async function verifyStoreAction(formData) {
     return { success: true, store, message: "Store verified successfully" };
   } catch (error) {
     console.error("Failed to verify store:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 1-Click Action to Restock a single medicine based on AI SmartStock recommendation
+ */
+export async function applyRestockAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const productId = formData.get("productId");
+    const quantityStr = formData.get("quantity") || formData.get("restockUnits");
+    const restockUnits = parseInt(quantityStr, 10);
+
+    if (!productId || isNaN(restockUnits) || restockUnits <= 0) {
+      throw new Error("Valid product ID and positive restock quantity are required");
+    }
+
+    const product = await db.product.findUnique({
+      where: { id: productId, storeId: user.store.id },
+    });
+
+    if (!product) throw new Error("Product not found in your inventory");
+
+    const newStock = product.stockQuantity + restockUnits;
+
+    const updated = await db.product.update({
+      where: { id: productId },
+      data: {
+        stockQuantity: newStock,
+        isActive: true,
+      },
+    });
+
+    revalidatePath("/store");
+    return {
+      success: true,
+      product: updated,
+      message: `Restocked ${product.name} by +${restockUnits} units (Current Stock: ${newStock})`,
+    };
+  } catch (error) {
+    console.error("Failed to apply restock:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 1-Click Action to Restock All depleted medicines up to their calculated safe levels
+ */
+export async function applyBulkRestockAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const itemsJson = formData?.get ? formData.get("itemsJson") : formData?.itemsJson;
+    let itemsToRestock = [];
+
+    if (itemsJson) {
+      try {
+        itemsToRestock = JSON.parse(itemsJson);
+      } catch {
+        itemsToRestock = [];
+      }
+    }
+
+    // If no specific item list provided, automatically evaluate and restock critical & reorder items
+    if (itemsToRestock.length === 0) {
+      const suggestionsData = await getStoreSmartStockSuggestions();
+      const eligible = (suggestionsData.suggestions || []).filter(
+        (s) =>
+          s.recommendation.recommendedRestock > 0 &&
+          (s.recommendation.status === "CRITICAL_LOW" || s.recommendation.status === "REORDER_RECOMMENDED")
+      );
+
+      itemsToRestock = eligible.map((s) => ({
+        productId: s.product.id,
+        quantity: s.recommendation.recommendedRestock,
+        name: s.product.name,
+      }));
+    }
+
+    if (itemsToRestock.length === 0) {
+      return { success: true, count: 0, message: "No medicines currently require restocking." };
+    }
+
+    await db.$transaction(
+      itemsToRestock.map((item) =>
+        db.product.update({
+          where: { id: item.productId, storeId: user.store.id },
+          data: {
+            stockQuantity: { increment: item.quantity },
+            isActive: true,
+          },
+        })
+      )
+    );
+
+    revalidatePath("/store");
+    return {
+      success: true,
+      count: itemsToRestock.length,
+      message: `Successfully restocked ${itemsToRestock.length} essential medicine(s) into inventory!`,
+    };
+  } catch (error) {
+    console.error("Failed to apply bulk restock:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Bulk imports a list of medicines from CSV / JSON into the store inventory
+ */
+export async function bulkImportProductsAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+    if (user.store.verificationStatus !== "VERIFIED") {
+      throw new Error("Store must be verified before listing medicines");
+    }
+
+    const productsJson = formData.get("productsJson");
+    if (!productsJson) throw new Error("No products data provided for import");
+
+    let productsList = [];
+    try {
+      productsList = JSON.parse(productsJson);
+    } catch {
+      throw new Error("Invalid products data format");
+    }
+
+    if (!Array.isArray(productsList) || productsList.length === 0) {
+      throw new Error("Products list is empty");
+    }
+
+    let insertedCount = 0;
+    const errors = [];
+
+    for (const item of productsList) {
+      if (!item.name || isNaN(parseFloat(item.price))) {
+        errors.push(`Skipped invalid item: ${item.name || "Unknown"}`);
+        continue;
+      }
+
+      const price = parseFloat(item.price);
+      const mrp = item.mrp ? parseFloat(item.mrp) : price;
+      const stockQuantity = parseInt(item.stockQuantity || "0", 10);
+      const safetyStock = parseInt(item.safetyStock || "15", 10);
+      const maxStockCap = parseInt(item.maxStockCap || "120", 10);
+      const expiryDate = item.expiryDate ? new Date(item.expiryDate) : null;
+      const expiryEval = evaluateExpiryStatus(expiryDate);
+
+      await db.product.create({
+        data: {
+          storeId: user.store.id,
+          name: item.name,
+          genericName: item.genericName || null,
+          category: item.category || "General Healthcare",
+          dosageForm: item.dosageForm || "Tablet",
+          strength: item.strength || null,
+          batchNumber: item.batchNumber || `BATCH-${Date.now().toString().slice(-6)}`,
+          price,
+          mrp,
+          stockQuantity: Math.max(0, stockQuantity),
+          safetyStock,
+          maxStockCap,
+          expiryDate,
+          expiryStatus: expiryEval.status,
+          imageUrl: item.imageUrl || null,
+          description: item.description || null,
+        },
+      });
+      insertedCount++;
+    }
+
+    revalidatePath("/store");
+    return {
+      success: true,
+      count: insertedCount,
+      errors,
+      message: `Successfully listed ${insertedCount} medicine(s) in your Dukaan catalog!`,
+    };
+  } catch (error) {
+    console.error("Failed to bulk import products:", error);
     return { success: false, error: error.message };
   }
 }

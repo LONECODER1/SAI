@@ -25,6 +25,7 @@ import {
 
 import InventoryTable from "./_components/inventory-table";
 import AddProductModal from "./_components/add-product-modal";
+import BulkImportModal from "./_components/bulk-import-modal";
 import OrdersManager from "./_components/orders-manager";
 import StoreAnalytics from "./_components/store-analytics";
 import SmartStockCard from "./_components/smart-stock-card";
@@ -118,8 +119,9 @@ export default async function StoreDashboardPage() {
           </div>
         </div>
 
-        {/* Add Medicine Modal Trigger */}
-        <div>
+        {/* Add Medicine & Bulk Import Modals */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <BulkImportModal storeId={store.id} />
           <AddProductModal storeId={store.id} />
         </div>
       </div>
@@ -177,9 +179,15 @@ export default async function StoreDashboardPage() {
           >
             <Sparkles className="h-4 w-4" />
             Smart Restock AI
-            {suggestions.length > 0 && (
-              <span className="h-2 w-2 rounded-full bg-teal-400 animate-ping" />
-            )}
+            {(suggestionsData?.summary?.criticalCount || 0) > 0 ? (
+              <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0 h-4">
+                {suggestionsData.summary.criticalCount}
+              </Badge>
+            ) : (suggestionsData?.summary?.reorderCount || 0) > 0 ? (
+              <Badge className="bg-amber-600 text-white text-[10px] px-1.5 py-0 h-4">
+                {suggestionsData.summary.reorderCount}
+              </Badge>
+            ) : null}
           </TabsTrigger>
 
           <TabsTrigger
@@ -216,7 +224,7 @@ export default async function StoreDashboardPage() {
 
         {/* Tab 4: Smart Restock AI */}
         <TabsContent value="smartstock" className="space-y-4">
-          <SmartStockCard suggestions={suggestions} />
+          <SmartStockCard suggestionsData={suggestionsData} />
         </TabsContent>
 
         {/* Tab 4: Analytics */}
