@@ -1,6 +1,6 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import { ShieldCheck, ArrowLeft, Info, Users, CreditCard } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Info, Users, CreditCard, Store, Building2 } from "lucide-react";
 import Link from "next/link";
 
 import PageHeader from "@/components/page-header";
@@ -47,6 +47,16 @@ const AdminLayout = async ({ children }) => {
           <TabsTrigger value="payouts" className="flex-1 justify-start px-4 py-3 w-full">
             <CreditCard className="h-4 w-4 mr-2 inline-block" />
             <span>Payout Requests</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="pending-stores" className="flex-1 justify-start px-4 py-3 w-full">
+            <Store className="h-4 w-4 mr-2 inline-block" />
+            <span>Pending Stores</span>
+          </TabsTrigger>
+
+          <TabsTrigger value="stores" className="flex-1 justify-start px-4 py-3 w-full">
+            <Building2 className="h-4 w-4 mr-2 inline-block" />
+            <span>Verified Stores</span>
           </TabsTrigger>
         </TabsList>
 

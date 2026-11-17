@@ -281,4 +281,114 @@ export async function approvePayout(formData) {
     console.error("Failed to approve payout:", error);
     throw new Error(`Failed to approve payout: ${error.message}`);
   }
-}
+}
+
+// =============================================================
+// PHARMACY STORE APPROVALS & GOVERNANCE (MEDSTORE ADMIN)
+// =============================================================
+
+export async function getPendingStores() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const pendingStores = await db.store.findMany({
+      where: {
+        verificationStatus: "PENDING",
+      },
+      include: {
+        owner: { select: { name: true, email: true, imageUrl: true } },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return { stores: pendingStores };
+  } catch (error) {
+    console.error("Failed to fetch pending stores:", error);
+    throw new Error("Failed to fetch pending stores");
+  }
+}
+
+export async function getVerifiedStores() {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  try {
+    const verifiedStores = await db.store.findMany({
+      where: {
+        verificationStatus: "VERIFIED",
+      },
+      include: {
+        owner: { select: { name: true, email: true, imageUrl: true } },
+        _count: { select: { products: true, orders: true } },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return { stores: verifiedStores };
+  } catch (error) {
+    console.error("Failed to fetch verified stores:", error);
+    throw new Error("Failed to fetch verified stores");
+  }
+}
+
+export async function updateStoreStatus(formData) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const storeId = formData.get("storeId");
+  const status = formData.get("status");
+
+  if (!storeId || !["VERIFIED", "REJECTED"].includes(status)) {
+    throw new Error("Invalid input");
+  }
+
+  try {
+    await db.store.update({
+      where: {
+        id: storeId,
+      },
+      data: {
+        verificationStatus: status,
+      },
+    });
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update store status:", error);
+    throw new Error(`Failed to update store status: ${error.message}`);
+  }
+}
+
+export async function toggleStoreActiveStatus(formData) {
+  const isAdmin = await verifyAdmin();
+  if (!isAdmin) throw new Error("Unauthorized");
+
+  const storeId = formData.get("storeId");
+  const isActive = formData.get("isActive") === "true";
+
+  if (!storeId) throw new Error("Store ID is required");
+
+  try {
+    await db.store.update({
+      where: {
+        id: storeId,
+      },
+      data: {
+        isActive,
+      },
+    });
+
+    revalidatePath("/admin");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to toggle store active status:", error);
+    throw new Error("Failed to toggle store active status");
+  }
+}
+
