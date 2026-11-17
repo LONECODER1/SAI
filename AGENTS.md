@@ -247,6 +247,32 @@ Both are presented to the patient with transparent comparison:
 - 🏷️ **Lowest Price Choice:** Save up to 25% at MediLife (3.2 km).
 - ⚡ **Fastest Delivery Choice:** Available now at Express Dukaan (0.8 km).
 
+### A. Core Feature 1: Generic Substitute Savings Engine ("Substitute Intelligence")
+*Mandated via User Directive (Suggestion 1)*
+
+When a doctor prescribes or a user searches for an expensive branded drug $M_{\text{brand}}$:
+1. **Bio-Equivalence Query:** Find candidate medicines in radius $R \le 10\text{km}$ where:
+   $$\text{genericName} = M_{\text{brand}}.\text{genericName} \quad \land \quad \text{dosageForm} = M_{\text{brand}}.\text{dosageForm} \quad \land \quad \text{strength} = M_{\text{brand}}.\text{strength}$$
+2. **Savings Calculation:**
+   $$\Delta P = P_{\text{brand}} - P_{\text{generic\_min}}$$
+   $$\text{Savings\%} = \frac{\Delta P}{P_{\text{brand}}} \times 100\%$$
+3. **UI Trigger:** If $\text{Savings\%} \ge 15\%$, render the **"Substitute Intelligence" Badge**:
+   > 💡 **Save ₹95 (45% OFF):** Verified generic equivalent (*Amoxyclav 625*) available at nearby Apex Dukaan. `[Switch to Generic & Save]`
+
+### B. Core Feature 2: Dukaan Expiry Flash-Sale / Clearance Hub ("Save & Liquidate")
+*Mandated via User Directive (Suggestion 2)*
+
+Addresses the pharmacy dead-stock dilemma while supporting chronic-care patients:
+1. **Dukaan Automation:** When a batch reaches $0 < \Delta T_{\text{expiry}} \le 60\text{ days}$, the Store Dashboard triggers an instant action card:
+   > ⚠️ **Near-Expiry Warning:** 16 units of *Metformin 500mg* expire in 40 days. 
+   > Action: `[1-Click Enroll in Flash Clearance @ 50% OFF]`
+2. **Status Update:** Updates `isFlashSale = true`, `flashSaleDiscount = 50.0`, `flashSalePrice = price * 0.5`.
+3. **Patient Storefront ("Flash Clearance Shelf"):**
+   - Displays daily maintenance medicines (Diabetes, BP, Thyroid, Cardiac) with transparent expiry countdowns:
+     > 🏷️ **Clearance Deal:** *Metformin 500mg (Strip of 10)* — **₹25** ~~(MRP ₹50)~~
+     > ⏱️ *Batch Expiry: 40 Days Left — Ideal for your immediate monthly supply!*
+4. **Economic Benefit:** Turns a total loss for the pharmacy into immediate cash flow, while giving patients 50% savings on recurring medications.
+
 ---
 
 ## 6. Unified Database Architecture (`prisma/schema.prisma`)
@@ -306,18 +332,24 @@ model Product {
   storeId              String
   store                Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
   name                 String
-  genericName          String?
+  genericName          String?       // Active formulation (e.g., "Amoxicillin + Clavulanic Acid")
   category             String
-  dosageForm           String?
-  strength             String?
+  dosageForm           String?       // Tablet, Syrup, Capsule, etc.
+  strength             String?       // 500mg, 625mg, etc.
   batchNumber          String?
-  price                Float
-  mrp                  Float?
+  price                Float         // Selling Price
+  mrp                  Float?        // Maximum Retail Price
   stockQuantity        Int           @default(0)
   safetyStock          Int           @default(15)
   maxStockCap          Int           @default(120)
   expiryDate           DateTime?
   expiryStatus         ExpiryStatus  @default(SAFE)
+  
+  // Suggestion 2: Dukaan Expiry Flash-Sale / Clearance Hub
+  isFlashSale          Boolean       @default(false)
+  flashSaleDiscount    Float?        // e.g. 50.0 for 50% off
+  flashSalePrice       Float?        // Discounted liquidation price
+  
   imageUrl             String?
   prescriptionRequired Boolean       @default(false)
   isActive             Boolean       @default(true)
@@ -329,6 +361,7 @@ model Product {
   @@index([storeId, name])
   @@index([genericName])
   @@index([expiryDate])
+  @@index([isFlashSale])
 }
 
 model Prescription {
