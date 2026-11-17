@@ -192,3 +192,90 @@ export async function searchMedicinesAndStores({
     return { products: [], nearbyStores: [], prescribedItems: [], error: error.message };
   }
 }
+
+/**
+ * Retrieves comprehensive details for a single medicine product,
+ * including store location coordinates, patient distance, and generic substitutes.
+ * Ported & elevated from Medstore-mern: getsingleproduct
+ */
+export async function getMedicineById(productId, userLat = null, userLng = null) {
+  try {
+    if (!productId) throw new Error("Product ID is required");
+
+    const product = await db.product.findUnique({
+      where: { id: productId },
+      include: {
+        store: {
+          select: {
+            id: true,
+            storeName: true,
+            storeAddress: true,
+            city: true,
+            postalCode: true,
+            phone: true,
+            latitude: true,
+            longitude: true,
+            rating: true,
+            verificationStatus: true,
+          },
+        },
+      },
+    });
+
+    if (!product) {
+      return { product: null, error: "Medicine not found" };
+    }
+
+    // Calculate distance from user location
+    let distanceKm = null;
+    if (userLat && userLng && product.store) {
+      try {
+        distanceKm = calculateHaversineDistance(
+          Number(userLat),
+          Number(userLng),
+          product.store.latitude,
+          product.store.longitude
+        );
+      } catch {
+        distanceKm = null;
+      }
+    }
+
+    // Check for potential generic substitute
+    const sameGenericAlternatives = await db.product.findMany({
+      where: {
+        id: { not: product.id },
+        genericName: product.genericName,
+        isActive: true,
+        stockQuantity: { gt: 0 },
+      },
+      include: {
+        store: {
+          select: {
+            id: true,
+            storeName: true,
+            city: true,
+            rating: true,
+          },
+        },
+      },
+      orderBy: { price: "asc" },
+      take: 3,
+    });
+
+    const genericAlternative = findBestGenericSubstitute(product, sameGenericAlternatives);
+
+    return {
+      product: {
+        ...product,
+        distanceKm,
+        genericAlternative,
+        expiryEvaluation: evaluateExpiryStatus(product.expiryDate),
+      },
+      genericSubstitutes: sameGenericAlternatives,
+    };
+  } catch (error) {
+    console.error("Failed to get medicine details:", error);
+    return { product: null, error: error.message };
+  }
+}
