@@ -4,13 +4,6 @@ import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Package,
   Clock,
   CheckCircle2,
@@ -20,19 +13,57 @@ import {
   User,
   ShoppingBag,
   Loader2,
+  FileText,
+  ArrowRight,
+  XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { updateOrderStatusAction } from "@/actions/store";
 import useFetch from "@/hooks/use-fetch";
 
 const STATUS_CONFIG = {
-  PENDING: { label: "New Order", color: "bg-amber-900/30 text-amber-300 border-amber-700/40" },
-  ACCEPTED: { label: "Accepted", color: "bg-blue-900/30 text-blue-300 border-blue-700/40" },
-  PREPARING: { label: "Preparing / Packing", color: "bg-indigo-900/30 text-indigo-300 border-indigo-700/40" },
-  READY_FOR_PICKUP: { label: "Ready for Pickup", color: "bg-teal-900/30 text-teal-300 border-teal-700/40" },
-  OUT_FOR_DELIVERY: { label: "Out for Delivery", color: "bg-purple-900/30 text-purple-300 border-purple-700/40" },
-  DELIVERED: { label: "Delivered", color: "bg-emerald-900/30 text-emerald-300 border-emerald-700/40" },
-  CANCELLED: { label: "Cancelled", color: "bg-red-900/30 text-red-300 border-red-700/40" },
+  PENDING: {
+    label: "New Incoming",
+    color: "bg-amber-900/40 text-amber-300 border-amber-700/50",
+    nextStatus: "ACCEPTED",
+    nextLabel: "Accept Order",
+  },
+  ACCEPTED: {
+    label: "Accepted",
+    color: "bg-blue-900/40 text-blue-300 border-blue-700/50",
+    nextStatus: "PREPARING",
+    nextLabel: "Start Preparing & Packing",
+  },
+  PREPARING: {
+    label: "Preparing / Packing",
+    color: "bg-indigo-900/40 text-indigo-300 border-indigo-700/50",
+    nextStatus: "OUT_FOR_DELIVERY",
+    nextLabel: "Dispatch for Delivery",
+  },
+  READY_FOR_PICKUP: {
+    label: "Ready for Pickup",
+    color: "bg-teal-900/40 text-teal-300 border-teal-700/50",
+    nextStatus: "DELIVERED",
+    nextLabel: "Mark Delivered / Handed Over",
+  },
+  OUT_FOR_DELIVERY: {
+    label: "Out for Delivery",
+    color: "bg-purple-900/40 text-purple-300 border-purple-700/50",
+    nextStatus: "DELIVERED",
+    nextLabel: "Mark Delivered",
+  },
+  DELIVERED: {
+    label: "Delivered",
+    color: "bg-emerald-900/40 text-emerald-300 border-emerald-700/50",
+    nextStatus: null,
+    nextLabel: null,
+  },
+  CANCELLED: {
+    label: "Cancelled",
+    color: "bg-red-900/40 text-red-300 border-red-700/50",
+    nextStatus: null,
+    nextLabel: null,
+  },
 };
 
 export default function OrdersManager({ orders = [] }) {
@@ -41,7 +72,8 @@ export default function OrdersManager({ orders = [] }) {
 
   const { fn: updateStatus, loading } = useFetch(updateOrderStatusAction);
 
-  const handleStatusChange = async (orderId, newStatus) => {
+  const handleAdvanceStatus = async (orderId, newStatus) => {
+    if (!newStatus) return;
     setUpdatingId(orderId);
     const formData = new FormData();
     formData.append("orderId", orderId);
@@ -51,7 +83,33 @@ export default function OrdersManager({ orders = [] }) {
     setUpdatingId(null);
 
     if (res?.success) {
-      toast.success(`Order status updated to ${STATUS_CONFIG[newStatus]?.label || newStatus}`);
+      toast.success(
+        `Order progressed to "${STATUS_CONFIG[newStatus]?.label || newStatus}"`
+      );
+    } else if (res?.error) {
+      toast.error(res.error);
+    }
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    if (
+      !window.confirm(
+        "Are you sure you want to cancel this order? This will mark the order as CANCELLED."
+      )
+    ) {
+      return;
+    }
+
+    setUpdatingId(orderId);
+    const formData = new FormData();
+    formData.append("orderId", orderId);
+    formData.append("status", "CANCELLED");
+
+    const res = await updateStatus(formData);
+    setUpdatingId(null);
+
+    if (res?.success) {
+      toast.info("Order marked as cancelled");
     } else if (res?.error) {
       toast.error(res.error);
     }
@@ -74,7 +132,7 @@ export default function OrdersManager({ orders = [] }) {
             onClick={() => setSelectedFilter(st)}
             className={
               selectedFilter === st
-                ? "bg-teal-600 hover:bg-teal-700 text-white text-xs"
+                ? "bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold"
                 : "border-teal-900/30 text-muted-foreground text-xs"
             }
           >
@@ -92,27 +150,39 @@ export default function OrdersManager({ orders = [] }) {
       {filteredOrders.length === 0 ? (
         <div className="text-center py-12 bg-muted/10 rounded-xl border border-teal-900/20">
           <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-white font-medium">No orders found in this status</p>
-          <p className="text-xs text-muted-foreground mt-1">New incoming patient orders will appear here in real-time.</p>
+          <p className="text-white font-medium">No orders in this status</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Incoming patient orders from doctors or direct shopping will appear here.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredOrders.map((order) => {
             const statusMeta = STATUS_CONFIG[order.status] || STATUS_CONFIG.PENDING;
+            const isProcessing = updatingId === order.id;
 
             return (
               <div
                 key={order.id}
-                className="p-5 rounded-xl bg-card border border-teal-900/20 hover:border-teal-700/40 transition-all space-y-4"
+                className="p-5 rounded-xl bg-card border border-teal-900/30 hover:border-teal-700/50 transition-all space-y-4"
               >
-                {/* Header: Order #, Status, Timestamp */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-muted/20 pb-3">
-                  <div className="flex items-center gap-3">
+                {/* Header: Order #, Status Badge, Prescription Badge, Placed Timestamp */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-muted/20 pb-3">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <span className="font-mono text-sm font-bold text-teal-400">
                       {order.orderNumber}
                     </span>
                     <Badge variant="outline" className={`text-xs ${statusMeta.color}`}>
                       {statusMeta.label}
+                    </Badge>
+                    {order.prescriptionId && (
+                      <Badge className="bg-teal-950/80 border border-teal-700/60 text-teal-300 text-xs gap-1">
+                        <FileText className="h-3 w-3" />
+                        Doctor E-Prescription Order
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="border-teal-900/30 text-muted-foreground text-xs">
+                      {order.deliveryType === "HOME_DELIVERY" ? "Home Delivery" : "Store Pickup"}
                     </Badge>
                   </div>
                   <span className="text-xs text-muted-foreground">
@@ -125,11 +195,11 @@ export default function OrdersManager({ orders = [] }) {
                   <div className="space-y-1">
                     <p className="text-white font-medium flex items-center gap-1.5">
                       <User className="h-3.5 w-3.5 text-teal-400" />
-                      {order.patient?.name || "Patient Customer"}
+                      {order.patient?.name || "Patient Customer"} ({order.patient?.email || "N/A"})
                     </p>
                     {order.customerPhone && (
                       <p className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Phone className="h-3.5 w-3.5 text-teal-400" />
                         {order.customerPhone}
                       </p>
                     )}
@@ -137,67 +207,102 @@ export default function OrdersManager({ orders = [] }) {
                   <div className="space-y-1">
                     <p className="text-white font-medium flex items-center gap-1.5">
                       <MapPin className="h-3.5 w-3.5 text-teal-400" />
-                      Delivery Address
+                      Delivery Destination
                     </p>
-                    <p className="line-clamp-2">{order.deliveryAddress}</p>
+                    <p className="line-clamp-2 text-zinc-300">{order.deliveryAddress}</p>
                   </div>
                 </div>
 
-                {/* Items Ordered */}
-                <div className="p-3 rounded-lg bg-muted/20 border border-teal-900/10 space-y-2">
+                {/* Items Ordered List */}
+                <div className="p-3.5 rounded-lg bg-muted/20 border border-teal-900/20 space-y-2">
                   <p className="text-xs font-semibold text-teal-300 flex items-center gap-1.5">
-                    <ShoppingBag className="h-3.5 w-3.5" /> Items Ordered:
+                    <ShoppingBag className="h-3.5 w-3.5" /> Itemized Order Breakdown:
                   </p>
-                  <div className="space-y-1.5">
+                  <div className="divide-y divide-muted/20">
                     {order.items?.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center justify-between text-xs text-white"
+                        className="py-1.5 flex items-center justify-between text-xs"
                       >
-                        <span>
-                          {item.product?.name || "Medicine"} ×{" "}
-                          <span className="text-teal-400 font-bold">{item.quantity}</span>
+                        <div>
+                          <span className="font-medium text-white">{item.product?.name}</span>
+                          {item.product?.strength && (
+                            <span className="text-muted-foreground ml-1">
+                              ({item.product.strength})
+                            </span>
+                          )}
+                          <span className="text-teal-400/90 ml-2">
+                            × {item.quantity} units
+                          </span>
+                        </div>
+                        <span className="font-mono font-semibold text-zinc-200">
+                          ₹{item.totalPrice}
                         </span>
-                        <span className="font-medium">₹{item.totalPrice}</span>
                       </div>
                     ))}
                   </div>
-                  <div className="border-t border-muted/20 pt-2 flex items-center justify-between text-sm font-bold text-white">
-                    <span>Total Amount</span>
-                    <span className="text-teal-400">₹{order.totalAmount}</span>
+
+                  {/* Pricing Subtotal / Delivery / Total */}
+                  <div className="pt-2 border-t border-muted/30 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      Subtotal: ₹{order.subtotal} {order.deliveryFee > 0 ? `+ ₹${order.deliveryFee} Delivery` : ""}
+                    </span>
+                    <span className="text-sm font-bold text-teal-300">
+                      Grand Total: ₹{order.totalAmount}
+                    </span>
                   </div>
                 </div>
 
-                {/* Action: Status Advancement */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
-                  <span className="text-xs text-muted-foreground">
-                    Update Order Progression:
-                  </span>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Select
-                      defaultValue={order.status}
-                      onValueChange={(val) => handleStatusChange(order.id, val)}
-                      disabled={updatingId === order.id}
-                    >
-                      <SelectTrigger className="w-full sm:w-48 bg-muted/30 border-teal-800/40 text-xs">
-                        {updatingId === order.id ? (
-                          <span className="flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin" /> Updating...
-                          </span>
+                {/* Pipeline Progression Stepper Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                  <div className="text-xs text-muted-foreground">
+                    Current Step: <strong className="text-white">{statusMeta.label}</strong>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {/* Next Progression Step Button */}
+                    {statusMeta.nextStatus && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleAdvanceStatus(order.id, statusMeta.nextStatus)}
+                        disabled={isProcessing}
+                        className="bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs gap-1.5 shadow-md shadow-teal-950/40"
+                      >
+                        {isProcessing ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : (
-                          <SelectValue />
+                          <ArrowRight className="h-3.5 w-3.5" />
                         )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PENDING">New Order (Pending)</SelectItem>
-                        <SelectItem value="ACCEPTED">Accept Order</SelectItem>
-                        <SelectItem value="PREPARING">Preparing & Packing</SelectItem>
-                        <SelectItem value="READY_FOR_PICKUP">Ready for Pickup</SelectItem>
-                        <SelectItem value="OUT_FOR_DELIVERY">Out for Delivery</SelectItem>
-                        <SelectItem value="DELIVERED">Delivered / Completed</SelectItem>
-                        <SelectItem value="CANCELLED">Cancel Order</SelectItem>
-                      </SelectContent>
-                    </Select>
+                        {statusMeta.nextLabel}
+                      </Button>
+                    )}
+
+                    {/* Direct Quick Delivered Button for Pickups */}
+                    {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAdvanceStatus(order.id, "DELIVERED")}
+                        disabled={isProcessing}
+                        className="border-emerald-800/40 text-emerald-400 hover:bg-emerald-950/30 text-xs gap-1"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Instant Mark Delivered
+                      </Button>
+                    )}
+
+                    {/* Cancel Button */}
+                    {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleCancelOrder(order.id)}
+                        disabled={isProcessing}
+                        className="text-red-400 hover:bg-red-950/30 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

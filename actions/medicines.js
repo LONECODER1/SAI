@@ -62,15 +62,12 @@ export async function getFeaturedMedicines() {
 export async function searchMedicinesAndStores({
   query = "",
   category = "ALL",
-  userLat = 28.6139,
-  userLng = 77.2090,
-  maxRadiusKm = 20,
+  userLat = null,
+  userLng = null,
+  maxRadiusKm = 30,
   prescriptionId = null,
 }) {
   try {
-    const lat = Number(userLat) || 28.6139;
-    const lng = Number(userLng) || 77.2090;
-
     // Fetch verified active stores
     const allStores = await db.store.findMany({
       where: {
@@ -79,8 +76,34 @@ export async function searchMedicinesAndStores({
       },
     });
 
+    // Default coordinates to Bhagalpur area or first verified store
+    const defaultLat = allStores.length > 0 ? allStores[0].latitude : 25.2425;
+    const defaultLng = allStores.length > 0 ? allStores[0].longitude : 86.9842;
+    const lat = userLat ? Number(userLat) : defaultLat;
+    const lng = userLng ? Number(userLng) : defaultLng;
+
     // Haversine proximity sort
-    const nearbyStores = findNearbyStores(allStores, lat, lng, maxRadiusKm);
+    let nearbyStores = findNearbyStores(allStores, lat, lng, maxRadiusKm);
+
+    // If no stores within maxRadiusKm, fallback to all verified stores sorted by distance
+    if (nearbyStores.length === 0 && allStores.length > 0) {
+      nearbyStores = allStores
+        .map((store) => {
+          try {
+            const distanceKm = calculateHaversineDistance(
+              lat,
+              lng,
+              store.latitude,
+              store.longitude
+            );
+            return { ...store, distanceKm };
+          } catch {
+            return { ...store, distanceKm: 1.2 };
+          }
+        })
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+    }
+
     const nearbyStoreIds = nearbyStores.map((s) => s.id);
 
     // If searching from a doctor prescription

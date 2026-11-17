@@ -1,5 +1,3 @@
-"use client";
-
 import PageHeader from "@/components/page-header";
 import { Stethoscope } from "lucide-react";
 import React from "react";

@@ -31,6 +31,7 @@ import { AppointmentCard } from "@/components/appointment-card";
 import MedicineCatalog from "@/app/(main)/medicines/_components/medicine-catalog";
 import FlashClearanceShelf from "@/app/(main)/medicines/_components/flash-clearance-shelf";
 import CartDrawer from "@/app/(main)/medicines/_components/cart-drawer";
+import LiveMap from "@/components/map/live-map";
 import { SPECIALTIES } from "@/lib/specialities";
 import { toast } from "sonner";
 
@@ -55,6 +56,7 @@ export default function DashboardClient({
   const [cartItems, setCartItems] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [activePrescriptionId, setActivePrescriptionId] = useState(prescriptionId);
+  const [trackingOrderId, setTrackingOrderId] = useState(null);
 
   const setActiveTab = (newTab) => {
     setInternalTab(newTab);
@@ -846,7 +848,7 @@ export default function DashboardClient({
                       </span>
                     </div>
 
-                    <div className="flex flex-col justify-between sm:items-end">
+                    <div className="flex flex-col justify-between sm:items-end gap-2">
                       <div className="text-left sm:text-right">
                         <span className="text-white font-bold text-sm block">
                           ₹{order.totalAmount}
@@ -855,8 +857,57 @@ export default function DashboardClient({
                           {order.items?.length || 0} items ({order.deliveryType})
                         </span>
                       </div>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          setTrackingOrderId(
+                            trackingOrderId === order.id ? null : order.id
+                          )
+                        }
+                        className="border-teal-700/50 text-teal-300 hover:bg-teal-950/40 text-xs h-7 gap-1"
+                      >
+                        <Truck className="h-3 w-3" />
+                        {trackingOrderId === order.id
+                          ? "Hide Route Map"
+                          : "Track Live Delivery Route"}
+                      </Button>
                     </div>
                   </div>
+
+                  {/* Live Delivery Route Map Viewer */}
+                  {trackingOrderId === order.id && (
+                    <div className="mt-4 pt-3 border-t border-teal-900/30 space-y-2 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between text-xs text-teal-300">
+                        <span className="font-semibold flex items-center gap-1.5">
+                          <Truck className="h-3.5 w-3.5 text-teal-400" />
+                          Live Delivery Route: {order.store?.storeName || "Dukaan"} ➔ Your Doorstep
+                        </span>
+                        <span className="text-muted-foreground text-[11px]">
+                          Delivery Status: <strong className="text-teal-300">{order.status}</strong>
+                        </span>
+                      </div>
+
+                      <LiveMap
+                        initialUserLat={order.store?.latitude || 28.6185}
+                        initialUserLng={order.store?.longitude || 77.2125}
+                        userLocationName={order.store?.storeName || "Fulfilling Dukaan"}
+                        stores={[
+                          {
+                            id: "delivery-destination",
+                            storeName: `Delivery to: ${order.deliveryAddress || "Home"}`,
+                            storeAddress: order.deliveryAddress,
+                            city: order.store?.city || "Local Area",
+                            latitude: (order.store?.latitude || 28.6185) + 0.012,
+                            longitude: (order.store?.longitude || 77.2125) + 0.015,
+                            rating: 5.0,
+                          },
+                        ]}
+                        height="360px"
+                      />
+                    </div>
+                  )}
 
                   {/* Order Items Detail */}
                   {order.items && order.items.length > 0 && (

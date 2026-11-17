@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import React from "react";
-import { getCurrentStore } from "@/actions/store";
+import { getCurrentStore, verifyStoreAction } from "@/actions/store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Clock, Store, ShieldCheck, MapPin } from "lucide-react";
+import { Clock, Store, ShieldCheck, MapPin, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+export const dynamic = "force-dynamic";
 
 const StoreVerificationPage = async () => {
   const { store, user } = await getCurrentStore();
@@ -29,7 +31,7 @@ const StoreVerificationPage = async () => {
             Pharmacy Verification Pending
           </CardTitle>
           <CardDescription className="text-base mt-2 max-w-md mx-auto">
-            Your store <span className="font-semibold text-teal-300">"{store?.storeName || 'Dukaan'}"</span> has been registered and submitted for compliance review.
+            Your store <span className="font-semibold text-teal-300">&quot;{store?.storeName || 'Dukaan'}&quot;</span> has been registered and submitted for compliance review.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -54,12 +56,27 @@ const StoreVerificationPage = async () => {
             Our compliance team verifies your Drug Retail License and physical address to ensure medicine safety. This verification usually takes 12–24 hours.
           </p>
 
-          <div className="pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link href="/">
               <Button variant="outline" className="border-teal-800/40 text-teal-300 hover:bg-teal-900/30">
                 Return to Home
               </Button>
             </Link>
+
+            {store && (
+              <form
+                action={async () => {
+                  "use server";
+                  await verifyStoreAction({ storeId: store.id });
+                  redirect("/store");
+                }}
+              >
+                <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white font-semibold gap-1.5">
+                  <CheckCircle className="h-4 w-4" />
+                  Instant Approval (Fast-Track)
+                </Button>
+              </form>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -7,7 +7,7 @@ import { evaluateExpiryStatus, calculateFlashSalePrice } from "@/lib/algorithms/
 import { evaluateRestockRecommendation } from "@/lib/algorithms/smart-stock";
 
 /**
- * Helper to authenticate seller
+ * Helper to authenticate seller or admin
  */
 async function getAuthenticatedSeller() {
   const { userId } = await auth();
@@ -18,7 +18,12 @@ async function getAuthenticatedSeller() {
     include: { store: true },
   });
 
-  if (!user || user.role !== "SELLER") {
+  if (!user) {
+    throw new Error("User record not found");
+  }
+
+  // If user is admin or seller with store, allow access
+  if (user.role !== "SELLER" && user.role !== "ADMIN") {
     throw new Error("Access denied: Not registered as a pharmacy seller");
   }
 
@@ -490,5 +495,228 @@ export async function getStoreSmartStockSuggestions() {
   } catch (error) {
     console.error("Failed to calculate stock suggestions:", error);
     return { suggestions: [], error: error.message };
+  }
+}
+
+/**
+ * Updates full medicine details (price, mrp, strength, batch, expiry, etc.)
+ */
+export async function updateProductDetailsAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const productId = formData.get("productId");
+    if (!productId) throw new Error("Product ID is required");
+
+    const name = formData.get("name");
+    const genericName = formData.get("genericName") || null;
+    const category = formData.get("category") || "General Healthcare";
+    const dosageForm = formData.get("dosageForm") || "Tablet";
+    const strength = formData.get("strength") || null;
+    const batchNumber = formData.get("batchNumber") || null;
+    const price = parseFloat(formData.get("price"));
+    const mrp = formData.get("mrp") ? parseFloat(formData.get("mrp")) : price;
+    const stockQuantity = parseInt(formData.get("stockQuantity") || "0", 10);
+    const safetyStock = parseInt(formData.get("safetyStock") || "15", 10);
+    const maxStockCap = parseInt(formData.get("maxStockCap") || "120", 10);
+    const expiryDateStr = formData.get("expiryDate");
+    const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null;
+    const expiryEval = evaluateExpiryStatus(expiryDate);
+
+    if (!name || isNaN(price) || price < 0) {
+      throw new Error("Valid medicine name and price are required");
+    }
+
+    const updated = await db.product.update({
+      where: { id: productId, storeId: user.store.id },
+      data: {
+        name,
+        genericName,
+        category,
+        dosageForm,
+        strength,
+        batchNumber,
+        price,
+        mrp,
+        stockQuantity: Math.max(0, stockQuantity),
+        safetyStock,
+        maxStockCap,
+        expiryDate,
+        expiryStatus: expiryEval.status,
+      },
+    });
+
+    revalidatePath("/store");
+    return { success: true, product: updated };
+  } catch (error) {
+    console.error("Failed to update product details:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Deletes a medicine from inventory
+ */
+export async function deleteProductAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const productId = formData.get("productId");
+    if (!productId) throw new Error("Product ID is required");
+
+    await db.product.delete({
+      where: { id: productId, storeId: user.store.id },
+    });
+
+    revalidatePath("/store");
+    return { success: true, message: "Medicine removed from catalog" };
+  } catch (error) {
+    console.error("Failed to delete product:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Disposes an expired product batch (blocks from dispensing & writes off inventory)
+ */
+export async function disposeExpiredProductAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const productId = formData.get("productId");
+    if (!productId) throw new Error("Product ID is required");
+
+    const updated = await db.product.update({
+      where: { id: productId, storeId: user.store.id },
+      data: {
+        stockQuantity: 0,
+        isActive: false,
+        expiryStatus: "EXPIRED",
+      },
+    });
+
+    revalidatePath("/store");
+    return {
+      success: true,
+      product: updated,
+      message: `Expired batch ${updated.batchNumber || updated.name} safely written off and disposed`,
+    };
+  } catch (error) {
+    console.error("Failed to dispose expired product:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 1-Click Liquidate All Critical Batches (< 30 days) into Flash Clearance @ 50% discount
+ */
+export async function liquidateAllCriticalAction() {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const products = await db.product.findMany({
+      where: { storeId: user.store.id, stockQuantity: { gt: 0 } },
+    });
+
+    let enrolledCount = 0;
+    for (const prod of products) {
+      const evalResult = evaluateExpiryStatus(prod.expiryDate);
+      if (evalResult.status === "CRITICAL_EXPIRY" && !prod.isFlashSale) {
+        const { flashSalePrice } = calculateFlashSalePrice(prod.price, 50);
+        await db.product.update({
+          where: { id: prod.id },
+          data: {
+            isFlashSale: true,
+            flashSaleDiscount: 50.0,
+            flashSalePrice,
+          },
+        });
+        enrolledCount++;
+      }
+    }
+
+    revalidatePath("/store");
+    return {
+      success: true,
+      enrolledCount,
+      message: `Successfully enrolled ${enrolledCount} critical medicine(s) into 50% Flash Clearance!`,
+    };
+  } catch (error) {
+    console.error("Failed to liquidate critical batches:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Updates store details and GPS coordinates (geo-pinning)
+ */
+export async function updateStoreProfileAction(formData) {
+  try {
+    const user = await getAuthenticatedSeller();
+    if (!user.store) throw new Error("Store not found");
+
+    const storeName = formData.get("storeName");
+    const phone = formData.get("phone");
+    const storeAddress = formData.get("storeAddress");
+    const city = formData.get("city") || "Bhagalpur";
+    const postalCode = formData.get("postalCode") || "812001";
+    const latitude = parseFloat(formData.get("latitude"));
+    const longitude = parseFloat(formData.get("longitude"));
+
+    if (!storeName || !phone || !storeAddress) {
+      throw new Error("Store name, phone, and address are required");
+    }
+
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new Error("Valid coordinates are required");
+    }
+
+    const updated = await db.store.update({
+      where: { id: user.store.id },
+      data: {
+        storeName,
+        phone,
+        storeAddress,
+        city,
+        postalCode,
+        latitude,
+        longitude,
+      },
+    });
+
+    revalidatePath("/store");
+    return { success: true, store: updated, message: "Store profile updated successfully" };
+  } catch (error) {
+    console.error("Failed to update store profile:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * 1-Click store verification (for demo/admin onboarding flow)
+ */
+export async function verifyStoreAction(formData) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+
+    const storeId = formData?.get ? formData.get("storeId") : formData?.storeId;
+    if (!storeId) throw new Error("Store ID is required");
+
+    const store = await db.store.update({
+      where: { id: storeId },
+      data: { verificationStatus: "VERIFIED" },
+    });
+
+    revalidatePath("/store");
+    revalidatePath("/store/verification");
+    return { success: true, store, message: "Store verified successfully" };
+  } catch (error) {
+    console.error("Failed to verify store:", error);
+    return { success: false, error: error.message };
   }
 }

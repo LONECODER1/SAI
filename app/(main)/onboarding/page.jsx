@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import useFetch from "@/hooks/use-fetch";
 import { setUserRole } from "@/actions/onboarding";
 import { SPECIALTIES } from "@/lib/specialities";
+import StorePinPicker from "@/components/map/store-pin-picker";
 
 const doctorFormSchema = z.object({
   specialty: z.string().min(1, "Specialty is required"),
@@ -463,31 +464,30 @@ const OnboardingPage = () => {
               </div>
             </div>
 
-            {/* Geolocation Coordinates */}
+            {/* Geolocation Coordinates & Interactive Drag-and-Pin Map */}
             <div className="p-4 rounded-lg bg-teal-950/20 border border-teal-900/30 space-y-3">
               <div className="flex items-center justify-between">
                 <Label className="text-teal-300 font-semibold flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  Store GPS Location Coordinates
+                  Store GPS Location Coordinates & Storefront Pin
                 </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={detectLocation}
-                  disabled={detectingLocation}
-                  className="border-teal-700/40 text-teal-300 hover:bg-teal-900/30"
-                >
-                  <LocateFixed className={`h-3.5 w-3.5 mr-1.5 ${detectingLocation ? "animate-spin" : ""}`} />
-                  {detectingLocation ? "Detecting..." : "Auto-Detect My GPS"}
-                </Button>
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Patients in your neighborhood will discover your store using these coordinates. You can auto-detect via GPS or enter manually.
+                Drop a pin exactly on your pharmacy storefront door so patients in your radius receive accurate delivery routes and distance estimates.
               </p>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Interactive Pin Picker Component */}
+              <StorePinPicker
+                initialLat={currentLat}
+                initialLng={currentLng}
+                onCoordinatesChange={(pos) => {
+                  setStoreValue("latitude", pos.latitude);
+                  setStoreValue("longitude", pos.longitude);
+                }}
+              />
+
+              <div className="grid grid-cols-2 gap-4 pt-1">
                 <div>
                   <Label htmlFor="latitude" className="text-xs text-muted-foreground">Latitude</Label>
                   <Input

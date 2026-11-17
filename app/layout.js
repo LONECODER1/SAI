@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import Header from "@/components/header";
 import { ClerkProvider } from "@clerk/nextjs";
 import {dark} from "@clerk/themes";
 import { Toaster } from "sonner";
-
-const outfit = Outfit({ subsets: ["latin"] });
 
 export const metadata = {
   title: "CareConnect",
@@ -18,7 +15,7 @@ export default function RootLayout({ children }) {
   return (
     <ClerkProvider appearance={{baseTheme:dark,}}>
     <html lang="en" className="dark" suppressHydrationWarning>
-      <body className={`${outfit.className}`}>
+      <body className="font-sans antialiased">
          <ThemeProvider
             attribute="class"
             defaultTheme="dark"

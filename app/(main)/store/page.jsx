@@ -28,6 +28,10 @@ import AddProductModal from "./_components/add-product-modal";
 import OrdersManager from "./_components/orders-manager";
 import StoreAnalytics from "./_components/store-analytics";
 import SmartStockCard from "./_components/smart-stock-card";
+import ExpiryManager from "./_components/expiry-manager";
+import LiveMap from "@/components/map/live-map";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = {
   title: "Dukaan Dashboard - CareConnect",
@@ -129,7 +133,7 @@ export default async function StoreDashboardPage() {
               Expiry Warning: {criticalExpiryItems.length} medicine(s) expiring within 30 days!
             </p>
             <p className="text-red-300/90">
-              To prevent complete inventory write-offs, click <strong>"Flash Sale @ 50%"</strong> on the affected medicines in your inventory below. They will immediately appear on the patient <strong>Clearance Shelf</strong> for daily chronic-care patients.
+              To prevent complete inventory write-offs, click <strong>&quot;Flash Sale @ 50%&quot;</strong> on the affected medicines in your inventory below. They will immediately appear on the patient <strong>Clearance Shelf</strong> for daily chronic-care patients.
             </p>
           </div>
         </div>
@@ -155,6 +159,19 @@ export default async function StoreDashboardPage() {
           </TabsTrigger>
 
           <TabsTrigger
+            value="expiry"
+            className="data-[state=active]:bg-teal-600 data-[state=active]:text-white text-xs font-medium py-2 px-4 rounded-lg flex items-center gap-2"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Expiry & Clearance Hub
+            {criticalExpiryItems.length > 0 && (
+              <Badge className="bg-red-600 text-white text-[10px] px-1.5 py-0 h-4">
+                {criticalExpiryItems.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+
+          <TabsTrigger
             value="smartstock"
             className="data-[state=active]:bg-teal-600 data-[state=active]:text-white text-xs font-medium py-2 px-4 rounded-lg flex items-center gap-2"
           >
@@ -172,6 +189,14 @@ export default async function StoreDashboardPage() {
             <TrendingUp className="h-4 w-4" />
             Sales & Income Analytics
           </TabsTrigger>
+
+          <TabsTrigger
+            value="geomap"
+            className="data-[state=active]:bg-teal-600 data-[state=active]:text-white text-xs font-medium py-2 px-4 rounded-lg flex items-center gap-2"
+          >
+            <MapPin className="h-4 w-4" />
+            Storefront GPS & Wayfinder
+          </TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Inventory Catalog */}
@@ -184,7 +209,12 @@ export default async function StoreDashboardPage() {
           <OrdersManager orders={orders} />
         </TabsContent>
 
-        {/* Tab 3: Smart Restock AI */}
+        {/* Tab 3: Expiry & Clearance Hub */}
+        <TabsContent value="expiry" className="space-y-4">
+          <ExpiryManager products={products} storeId={store.id} />
+        </TabsContent>
+
+        {/* Tab 4: Smart Restock AI */}
         <TabsContent value="smartstock" className="space-y-4">
           <SmartStockCard suggestions={suggestions} />
         </TabsContent>
@@ -192,6 +222,44 @@ export default async function StoreDashboardPage() {
         {/* Tab 4: Analytics */}
         <TabsContent value="analytics" className="space-y-4">
           <StoreAnalytics analytics={analytics} />
+        </TabsContent>
+
+        {/* Tab 5: Storefront GPS Pin & Live Wayfinder */}
+        <TabsContent value="geomap" className="space-y-4">
+          <div className="p-4 rounded-xl bg-card border border-teal-900/30 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-teal-400" />
+                  Verified Storefront Coordinates & Neighborhood Wayfinding
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Your store is active at ({store.latitude.toFixed(6)}, {store.longitude.toFixed(6)}). Patients in your 10km delivery radius discover your catalog and receive turn-by-turn routes here.
+                </p>
+              </div>
+              <Badge variant="outline" className="border-teal-700 text-teal-300 text-xs">
+                GPS Verified
+              </Badge>
+            </div>
+
+            <LiveMap
+              initialUserLat={store.latitude}
+              initialUserLng={store.longitude}
+              userLocationName={store.storeName}
+              stores={[
+                {
+                  id: store.id,
+                  storeName: store.storeName,
+                  storeAddress: store.storeAddress,
+                  city: store.city,
+                  latitude: store.latitude,
+                  longitude: store.longitude,
+                  rating: store.rating || 5.0,
+                },
+              ]}
+              height="480px"
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
