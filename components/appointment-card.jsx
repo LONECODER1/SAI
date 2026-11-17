@@ -14,7 +14,12 @@ import {
   Edit,
   Loader2,
   CheckCircle,
+  FileText,
+  Pill,
+  ShoppingBag,
 } from "lucide-react";
+import Link from "next/link";
+import PrescriptionModal from "@/app/(main)/doctor/_components/prescription-modal";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -513,10 +518,69 @@ export function AppointmentCard({
                 </div>
               )}
             </div>
+
+            {/* Digital Prescription Display & Actions */}
+            {appointment.prescription && (
+              <div className="space-y-3 p-4 rounded-xl bg-teal-950/20 border border-teal-800/40">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold text-teal-300 flex items-center gap-1.5">
+                    <FileText className="h-4 w-4" />
+                    Verified Digital E-Prescription
+                  </h4>
+                  <Badge variant="outline" className="border-teal-700 text-teal-300 text-xs">
+                    {appointment.prescription.items?.length || 0} Prescribed Items
+                  </Badge>
+                </div>
+
+                {appointment.prescription.diagnosis && (
+                  <p className="text-xs text-muted-foreground">
+                    <span className="text-white font-medium">Diagnosis:</span>{" "}
+                    {appointment.prescription.diagnosis}
+                  </p>
+                )}
+
+                <div className="space-y-1.5 pt-1">
+                  {appointment.prescription.items?.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-2 rounded-lg bg-card/60 border border-teal-900/30 flex items-center justify-between text-xs"
+                    >
+                      <div>
+                        <span className="font-semibold text-white">{item.medicineName}</span>
+                        {item.genericName && (
+                          <span className="text-muted-foreground ml-1.5">
+                            ({item.genericName})
+                          </span>
+                        )}
+                        <p className="text-[11px] text-teal-400 mt-0.5">
+                          Dosage: {item.dosage} • {item.durationDays} Days ({item.quantity} units)
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Patient Order Action */}
+                {userRole === "PATIENT" && (
+                  <div className="pt-2">
+                    <Link href={`/medicines?prescriptionId=${appointment.prescription.id}`}>
+                      <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold gap-2 shadow-lg shadow-teal-900/40">
+                        <ShoppingBag className="h-4 w-4" />
+                        Order Prescribed Medicines (Lowest Local Price)
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="flex pt-4 sm:flex-row">
-            <div className="flex gap-2 w-full">
+          <div className="flex pt-4 sm:flex-row flex-wrap gap-2">
+            {userRole === "DOCTOR" && (
+              <PrescriptionModal appointment={appointment} />
+            )}
+
+            <div className="flex gap-2 w-full sm:w-auto">
               {canMarkCompleted() && (
                 <Button
                   onClick={handleMarkCompleted}

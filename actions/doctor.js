@@ -135,11 +135,16 @@ export async function getDoctorAppointments() {
       where: {
         doctorId: doctor.id,
         status: {
-          in: ["SCHEDULED"],
+          in: ["SCHEDULED", "COMPLETED"],
         },
       },
       include: {
         patient: true,
+        prescription: {
+          include: {
+            items: true,
+          },
+        },
       },
       orderBy: {
         startTime: "asc",
@@ -389,5 +394,117 @@ return {
   );
 }
 }
+
+// =============================================================
+// DIGITAL E-PRESCRIPTION & LOCAL DEMAND EMITTER
+// =============================================================
+
+export async function issueDigitalPrescriptionAction({
+  appointmentId,
+  diagnosis,
+  instructions,
+  items = [],
+}) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
+  try {
+    const doctor = await db.user.findUnique({
+      where: { clerkUserId: userId, role: "DOCTOR" },
+    });
+
+    if (!doctor) throw new Error("Doctor not found");
+
+    const appointment = await db.appointment.findUnique({
+      where: { id: appointmentId, doctorId: doctor.id },
+      include: { patient: true },
+    });
+
+    if (!appointment) throw new Error("Appointment not found");
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error("Prescription must contain at least one medicine");
+    }
+
+    // Upsert Prescription in a transaction
+    const prescription = await db.$transaction(async (tx) => {
+      // Delete previous items if updating
+      const existing = await tx.prescription.findUnique({
+        where: { appointmentId },
+      });
+
+      if (existing) {
+        await tx.prescriptionItem.deleteMany({
+          where: { prescriptionId: existing.id },
+        });
+        await tx.prescription.delete({
+          where: { id: existing.id },
+        });
+      }
+
+      const created = await tx.prescription.create({
+        data: {
+          appointmentId,
+          doctorId: doctor.id,
+          patientId: appointment.patientId,
+          diagnosis: diagnosis || "General Clinical Consultation",
+          instructions: instructions || "Take medications as directed",
+          items: {
+            create: items.map((item) => ({
+              medicineName: item.medicineName,
+              genericName: item.genericName || null,
+              dosage: item.dosage || "1 Tab daily",
+              durationDays: parseInt(item.durationDays || "5", 10),
+              quantity: parseInt(item.quantity || "10", 10),
+              instructions: item.instructions || null,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      // Emit DemandSignal for each prescribed medicine to alert nearby pharmacies
+      for (const item of items) {
+        await tx.demandSignal.create({
+          data: {
+            medicineName: item.medicineName,
+            genericName: item.genericName || null,
+            latitude: 28.6139, // Vicinity signal anchor
+            longitude: 77.2090,
+            signalType: "PRESCRIPTION",
+            weight: 1.0,
+          },
+        });
+      }
+
+      return created;
+    });
+
+    revalidatePath("/doctor");
+    revalidatePath("/appointments");
+    return { success: true, prescription };
+  } catch (error) {
+    console.error("Failed to issue prescription:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getAppointmentPrescription(appointmentId) {
+  try {
+    const prescription = await db.prescription.findUnique({
+      where: { appointmentId },
+      include: {
+        items: true,
+        doctor: { select: { name: true, specialty: true } },
+      },
+    });
+
+    return { prescription };
+  } catch (error) {
+    console.error("Failed to fetch prescription:", error);
+    return { prescription: null, error: error.message };
+  }
+}
+
 
 
