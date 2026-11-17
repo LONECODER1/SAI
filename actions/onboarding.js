@@ -46,7 +46,7 @@ export async function setUserRole(formData) {
 
       return {
         success: true,
-        redirect: "/doctors",
+        redirect: "/dashboard",
       };
     }
 

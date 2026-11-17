@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
+import { LayoutDashboard } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { SPECIALTIES } from "@/lib/specialities";
@@ -9,6 +10,16 @@ import { SPECIALTIES } from "@/lib/specialities";
 const SpecialitiesPage = () => {
   return (
     <>
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-teal-900/30">
+        <Link
+          href="/dashboard?tab=doctors"
+          className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1.5 transition-colors font-medium bg-teal-950/40 border border-teal-800/40 px-3 py-1.5 rounded-lg"
+        >
+          <LayoutDashboard className="h-4 w-4" />
+          <span>Switch to Unified Patient Dashboard (Doctor & Medicines Dual Interface)</span>
+        </Link>
+      </div>
+
       <div className="flex flex-col items-center justify-center mb-8 text-center">
         <h1 className="text-3xl md:text-4xl font-bold mb-2 gradient-title">
           Find Your Doctor

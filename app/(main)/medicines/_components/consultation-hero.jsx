@@ -89,7 +89,7 @@ export default function ConsultationHero({ upcomingAppointment = null }) {
                 </div>
               </div>
 
-              <Link href="/appointments" className="block pt-1">
+              <Link href="/dashboard?tab=doctors" className="block pt-1">
                 <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs gap-2">
                   <Video className="h-4 w-4" />
                   Join Consultation Room

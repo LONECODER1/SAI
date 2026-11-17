@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { features, creditBenefits, testimonials } from "@/lib/data";
-import { ArrowRight, Check, Stethoscope, Pill, Store } from "lucide-react";
+import { ArrowRight, Check, Stethoscope, Pill, Store, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -37,13 +37,13 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/onboarding">
+                <Link href="/dashboard">
                   <Button
                     size="lg"
-                    className="bg-teal-600 text-white hover:bg-teal-700"
+                    className="bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-900/40"
                   >
-                    Get Started
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Patient Dashboard
                   </Button>
                 </Link>
 

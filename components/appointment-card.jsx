@@ -563,7 +563,7 @@ export function AppointmentCard({
                 {/* Patient Order Action */}
                 {userRole === "PATIENT" && (
                   <div className="pt-2">
-                    <Link href={`/medicines?prescriptionId=${appointment.prescription.id}`}>
+                    <Link href={`/dashboard?tab=medicines&prescriptionId=${appointment.prescription.id}`}>
                       <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold gap-2 shadow-lg shadow-teal-900/40">
                         <ShoppingBag className="h-4 w-4" />
                         Order Prescribed Medicines (Lowest Local Price)

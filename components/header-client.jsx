@@ -17,6 +17,7 @@ import {
   CreditCard,
   Store,
   Pill,
+  LayoutDashboard,
 } from "lucide-react";
 
 export default function HeaderClient({ user }) {
@@ -65,6 +66,15 @@ export default function HeaderClient({ user }) {
               <Pill className="h-4 w-4 text-teal-400" />
               Medicines (Dukaan)
             </Link>
+            {user?.role === "PATIENT" && (
+              <Link
+                href="/dashboard"
+                className="text-teal-400 hover:text-teal-300 font-semibold transition-colors flex items-center gap-1.5"
+              >
+                <LayoutDashboard className="h-4 w-4 text-teal-400" />
+                Unified Dashboard
+              </Link>
+            )}
           </div>
         </div>
 
@@ -116,16 +126,16 @@ export default function HeaderClient({ user }) {
             )}
 
             {user?.role === "PATIENT" && (
-              <Link href="/appointments">
+              <Link href="/dashboard">
                 <Button
                   variant="outline"
-                  className="hidden md:inline-flex items-center gap-2"
+                  className="hidden md:inline-flex items-center gap-2 border-teal-800/40 text-teal-300 hover:bg-teal-900/30"
                 >
-                  <Calendar className="h-4 w-4" />
-                  My Appointments
+                  <LayoutDashboard className="h-4 w-4 text-teal-400" />
+                  Patient Dashboard
                 </Button>
-                <Button variant="ghost" className="md:hidden w-10 h-10 p-0">
-                  <Calendar className="h-4 w-4" />
+                <Button variant="ghost" className="md:hidden w-10 h-10 p-0 text-teal-400">
+                  <LayoutDashboard className="h-4 w-4" />
                 </Button>
               </Link>
             )}
