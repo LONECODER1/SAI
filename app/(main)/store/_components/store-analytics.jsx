@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { DollarSign, ShoppingBag, Package, TrendingUp, Calendar } from "lucide-react";
+import { IndianRupee, ShoppingBag, Package, TrendingUp, Calendar } from "lucide-react";
 
 export default function StoreAnalytics({ analytics }) {
   if (!analytics) {
@@ -50,7 +50,7 @@ export default function StoreAnalytics({ analytics }) {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Revenue
             </CardTitle>
-            <DollarSign className="h-4 w-4 text-teal-400" />
+            <IndianRupee className="h-4 w-4 text-teal-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-white">₹{totalRevenue}</div>

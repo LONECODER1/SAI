@@ -27,19 +27,21 @@ import { issueDigitalPrescriptionAction } from "@/actions/doctor";
 import useFetch from "@/hooks/use-fetch";
 
 export default function PrescriptionModal({ appointment }) {
+  if (!appointment) return null;
+
   const [open, setOpen] = useState(false);
-  const [diagnosis, setDiagnosis] = useState(appointment.prescription?.diagnosis || "");
+  const [diagnosis, setDiagnosis] = useState(appointment?.prescription?.diagnosis || "");
   const [instructions, setInstructions] = useState(
-    appointment.prescription?.instructions || "Take all medications after food with water. Stay hydrated."
+    appointment?.prescription?.instructions || "Take all medications after food with water. Stay hydrated."
   );
 
-  const initialItems = appointment.prescription?.items?.length
+  const initialItems = appointment?.prescription?.items?.length
     ? appointment.prescription.items.map((i) => ({
-        medicineName: i.medicineName,
+        medicineName: i.medicineName || "",
         genericName: i.genericName || "",
-        dosage: i.dosage,
-        durationDays: i.durationDays.toString(),
-        quantity: i.quantity.toString(),
+        dosage: i.dosage || "1 Tab daily",
+        durationDays: (i.durationDays ?? 5).toString(),
+        quantity: (i.quantity ?? 10).toString(),
         instructions: i.instructions || "",
       }))
     : [
@@ -98,7 +100,7 @@ export default function PrescriptionModal({ appointment }) {
     }
 
     const payload = {
-      appointmentId: appointment.id,
+      appointmentId: appointment?.id,
       diagnosis,
       instructions,
       items,
@@ -113,7 +115,7 @@ export default function PrescriptionModal({ appointment }) {
     }
   };
 
-  const hasExistingPrescription = !!appointment.prescription;
+  const hasExistingPrescription = !!appointment?.prescription;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -138,7 +140,7 @@ export default function PrescriptionModal({ appointment }) {
             Digital E-Prescription Builder
           </DialogTitle>
           <DialogDescription>
-            Prescribe medications for patient <span className="text-white font-medium">{appointment.patient?.name}</span>. Once signed, nearby pharmacies are alerted and the patient receives direct 1-click lowest price routing.
+            Prescribe medications for patient <span className="text-white font-medium">{appointment?.patient?.name || "Patient"}</span>. Once signed, nearby pharmacies are alerted and the patient receives direct 1-click lowest price routing.
           </DialogDescription>
         </DialogHeader>
 

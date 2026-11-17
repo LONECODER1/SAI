@@ -39,6 +39,25 @@ const PricingPage = () => {
       </div>
 
       <Pricing />
+
+      {/* Transparent Credit to Rupee Conversion Information */}
+      <div className="mt-12 mb-12 max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="p-6 rounded-2xl bg-card border border-teal-900/30 text-center space-y-2">
+          <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">1 Platform Credit</p>
+          <p className="text-3xl font-extrabold text-teal-400">₹800</p>
+          <p className="text-xs text-muted-foreground">Standardized consultation unit for high-demand specialists</p>
+        </div>
+        <div className="p-6 rounded-2xl bg-card border border-teal-900/30 text-center space-y-2">
+          <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">Video Consultation</p>
+          <p className="text-3xl font-extrabold text-white">2 Credits <span className="text-sm font-normal text-teal-300">(₹1,600)</span></p>
+          <p className="text-xs text-muted-foreground">30-minute encrypted virtual consult + certified e-prescription</p>
+        </div>
+        <div className="p-6 rounded-2xl bg-card border border-teal-900/30 text-center space-y-2">
+          <p className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">Doctor Payout</p>
+          <p className="text-3xl font-extrabold text-emerald-400">₹640 <span className="text-sm font-normal text-muted-foreground">/ credit</span></p>
+          <p className="text-xs text-muted-foreground">80% direct net physician disbursement with 20% platform fee</p>
+        </div>
+      </div>
     </div>
   );
 };

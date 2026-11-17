@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, Stethoscope, Calendar, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Stethoscope, Calendar, Clock, IndianRupee } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -76,7 +76,7 @@ const DoctorDashboard = async () => {
             value="earnings"
             className="flex-1 justify-start px-4 py-3 w-full data-[state=active]:bg-muted data-[state=active]:text-white text-muted-foreground whitespace-nowrap"
           >
-            <DollarSign className="h-4 w-4 mr-2 hidden md:inline" />
+            <IndianRupee className="h-4 w-4 mr-2 hidden md:inline" />
             <span>Earnings</span>
           </TabsTrigger>
         </TabsList>

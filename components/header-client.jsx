@@ -137,6 +137,7 @@ export default function HeaderClient({ user }) {
               <Badge
                 variant="outline"
                 className="h-9 bg-teal-900/20 border-teal-700/30 px-3 py-1 flex items-center gap-2"
+                title={user?.role === "PATIENT" ? `${user.credits} Credits = ₹${user.credits * 800} value` : "View Pricing in ₹"}
               >
                 <CreditCard className="h-3.5 w-3.5 text-teal-400" />
                 <span className="text-teal-400">

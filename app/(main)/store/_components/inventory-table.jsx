@@ -38,7 +38,7 @@ import {
   Copy,
   ArrowUpDown,
   Boxes,
-  DollarSign,
+  IndianRupee,
   TrendingDown,
   Sparkles,
 } from "lucide-react";

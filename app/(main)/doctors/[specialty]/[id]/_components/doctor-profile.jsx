@@ -37,9 +37,9 @@ const DoctorProfile = ({ doctor, availableDays }) => {
     }
   };
 
-const handleBookingComplete=()=>{
-  router.push("/appointments");
-};
+  const handleBookingComplete = () => {
+    router.push("/dashboard?tab=doctors");
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

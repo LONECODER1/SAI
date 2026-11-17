@@ -132,8 +132,7 @@ export async function createMedicineOrder({
       return createdOrder;
     });
 
-    revalidatePath("/medicines");
-    revalidatePath("/appointments");
+    revalidatePath("/dashboard");
     revalidatePath("/store");
 
     return { success: true, order };

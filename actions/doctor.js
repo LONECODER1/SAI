@@ -338,8 +338,6 @@ export async function addAppointmentNotes(formData) {
 
     revalidatePath("/doctor");
     revalidatePath("/dashboard");
-    revalidatePath("/video-call");
-    revalidatePath("/appointments");
 
     return {
       success: true,
@@ -417,8 +415,6 @@ export async function markAppointmentCompleted(formData) {
 
     revalidatePath("/doctor");
     revalidatePath("/dashboard");
-    revalidatePath("/video-call");
-    revalidatePath("/appointments");
 
     return {
       success: true,
@@ -517,7 +513,7 @@ export async function issueDigitalPrescriptionAction({
     });
 
     revalidatePath("/doctor");
-    revalidatePath("/appointments");
+    revalidatePath("/dashboard");
     return { success: true, prescription };
   } catch (error) {
     console.error("Failed to issue prescription:", error);

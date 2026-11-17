@@ -18,7 +18,7 @@ import {
   Zap,
   Phone,
   Calendar,
-  DollarSign,
+  IndianRupee,
   Compass,
 } from "lucide-react";
 

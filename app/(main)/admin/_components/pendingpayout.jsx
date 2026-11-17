@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   Check,
   User,
-  DollarSign,
+  IndianRupee,
   Mail,
   Stethoscope,
   Loader2,
@@ -136,7 +136,7 @@ export function PendingPayouts({ payouts = [], processedPayouts = [] }) {
             <div>
               {payouts.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <DollarSign className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
+                  <IndianRupee className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
                   <p className="text-base font-medium text-white mb-1">
                     No pending payout requests
                   </p>
@@ -166,9 +166,9 @@ export function PendingPayouts({ payouts = [], processedPayouts = [] }) {
                               </p>
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-sm text-muted-foreground">
                                 <div className="flex items-center">
-                                  <DollarSign className="h-4 w-4 mr-1 text-teal-400 shrink-0" />
+                                  <IndianRupee className="h-4 w-4 mr-1 text-teal-400 shrink-0" />
                                   <span className="font-medium text-white">
-                                    ${payout.netAmount?.toFixed(2) || "0.00"}
+                                    ₹{payout.netAmount?.toFixed(2) || "0.00"}
                                   </span>
                                   <span className="ml-1 text-xs text-muted-foreground">
                                     ({payout.credits} credits)
@@ -261,9 +261,9 @@ export function PendingPayouts({ payouts = [], processedPayouts = [] }) {
                               </p>
                               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2.5 text-sm text-muted-foreground">
                                 <div className="flex items-center">
-                                  <DollarSign className="h-4 w-4 mr-1 text-teal-400 shrink-0" />
+                                  <IndianRupee className="h-4 w-4 mr-1 text-teal-400 shrink-0" />
                                   <span className="font-medium text-white">
-                                    ${payout.netAmount?.toFixed(2) || "0.00"}
+                                    ₹{payout.netAmount?.toFixed(2) || "0.00"}
                                   </span>
                                   <span className="ml-1 text-xs text-muted-foreground">
                                     ({payout.credits} credits)
@@ -373,7 +373,7 @@ export function PendingPayouts({ payouts = [], processedPayouts = [] }) {
               {/* Payout Information */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-teal-400" />
+                  <IndianRupee className="h-5 w-5 text-teal-400" />
                   <h3 className="text-white font-medium">Payout Breakdown</h3>
                 </div>
                 <div className="bg-muted/20 p-4 rounded-lg border border-teal-900/20 space-y-3 text-sm">
@@ -387,24 +387,24 @@ export function PendingPayouts({ payouts = [], processedPayouts = [] }) {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
-                      Gross amount ($10 USD / credit):
+                      Gross amount (₹800 / credit):
                     </span>
                     <span className="text-white">
-                      ${selectedPayout.amount?.toFixed(2) || "0.00"}
+                      ₹{selectedPayout.amount?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">
-                      Platform fee ($2 USD / credit):
+                      Platform fee (₹160 / credit):
                     </span>
                     <span className="text-amber-400">
-                      -${selectedPayout.platformFee?.toFixed(2) || "0.00"}
+                      -₹{selectedPayout.platformFee?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   <div className="border-t border-teal-900/20 pt-3 flex justify-between font-semibold">
                     <span className="text-white">Doctor receives:</span>
                     <span className="text-teal-400 text-base">
-                      ${selectedPayout.netAmount?.toFixed(2) || "0.00"} USD
+                      ₹{selectedPayout.netAmount?.toFixed(2) || "0.00"}
                     </span>
                   </div>
                   <div className="border-t border-teal-900/20 pt-3">
@@ -494,7 +494,7 @@ export function PendingPayouts({ payouts = [], processedPayouts = [] }) {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Net Payout:</span>
                   <span className="text-teal-400 font-semibold text-base">
-                    ${selectedPayout.netAmount?.toFixed(2) || "0.00"}
+                    ₹{selectedPayout.netAmount?.toFixed(2) || "0.00"}
                   </span>
                 </div>
                 <div className="flex justify-between">

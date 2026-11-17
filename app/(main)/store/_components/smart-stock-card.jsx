@@ -14,7 +14,7 @@ import {
   Zap,
   ArrowRight,
   Loader2,
-  DollarSign,
+  IndianRupee,
   Activity,
   Layers,
   HelpCircle,

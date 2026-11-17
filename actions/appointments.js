@@ -350,7 +350,8 @@ export async function bookAppointment(formData) {
       return { appointment };
     });
 
-    revalidatePath("/appointments");
+    revalidatePath("/dashboard");
+    revalidatePath("/doctor");
 
     return {
       success: true,

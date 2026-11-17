@@ -51,7 +51,7 @@ const AppointmentForm = ({ doctorId, slot, onBack, onComplete }) => {
           <CreditCard className="h-4 w-4 text-teal-400 mr-2.5 shrink-0" />
           <span className="text-muted-foreground">
             Consultation Fee:
-            <span className="text-teal-300 font-bold ml-1">2 Credits</span>
+            <span className="text-teal-300 font-bold ml-1">2 Credits (₹1,600)</span>
           </span>
         </div>
       </div>

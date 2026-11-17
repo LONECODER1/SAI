@@ -47,6 +47,7 @@ const VideoCall = ({
   initialAppointment = null,
   userRole = "PATIENT",
 }) => {
+  const effectiveRole = userRole || "PATIENT";
   const [isLoading, setIsLoading] = useState(true);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -123,7 +124,7 @@ const VideoCall = ({
   const initializeSession = () => {
     if (!sessionId || !token) {
       toast.error("Missing required video call parameters");
-      router.push(userRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors");
+      router.push(effectiveRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors");
       return;
     }
 
@@ -134,7 +135,7 @@ const VideoCall = ({
 
     if (!appId) {
       toast.error("Missing Vonage Application ID");
-      router.push(userRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors");
+      router.push(effectiveRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors");
       return;
     }
 
@@ -285,7 +286,7 @@ const VideoCall = ({
     }
 
     toast.info("Video consultation ended");
-    router.push(userRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors");
+    router.push(effectiveRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors");
   };
 
   useEffect(() => {
@@ -364,7 +365,7 @@ const VideoCall = ({
           </p>
           <Button
             onClick={() =>
-              router.push(userRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors")
+              router.push(effectiveRole === "DOCTOR" ? "/doctor" : "/dashboard?tab=doctors")
             }
             className="bg-teal-600 hover:bg-teal-700 w-full"
           >
@@ -376,7 +377,7 @@ const VideoCall = ({
   }
 
   const otherPersonName =
-    userRole === "DOCTOR"
+    effectiveRole === "DOCTOR"
       ? appointment?.patient?.name || "Patient"
       : `Dr. ${appointment?.doctor?.name || "Specialist"}`;
 
@@ -528,7 +529,7 @@ const VideoCall = ({
                 <div className="relative border border-teal-900/30 rounded-2xl overflow-hidden bg-background shadow-xl">
                   <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 bg-background/80 backdrop-blur-md px-2.5 py-1 rounded-full border border-teal-900/40 text-teal-300 text-xs font-medium">
                     <User className="h-3.5 w-3.5 text-teal-400" />
-                    <span>You ({userRole === "DOCTOR" ? "Doctor" : "Patient"})</span>
+                    <span>You ({effectiveRole === "DOCTOR" ? "Doctor" : "Patient"})</span>
                   </div>
 
                   <div
@@ -612,12 +613,12 @@ const VideoCall = ({
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base font-bold text-white flex items-center gap-2">
                         <FileText className="h-4 w-4 text-teal-400" />
-                        {userRole === "DOCTOR"
+                        {effectiveRole === "DOCTOR"
                           ? "Consultation Notes & Advice"
                           : "Doctor's Advice & Instructions"}
                       </CardTitle>
                       <Badge variant="outline" className="text-[11px] border-teal-700 text-teal-300">
-                        {userRole === "DOCTOR" ? "Physician View" : "Patient View"}
+                        {effectiveRole === "DOCTOR" ? "Physician View" : "Patient View"}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -637,7 +638,7 @@ const VideoCall = ({
                     )}
 
                     {/* DOCTOR VIEW: Interactive Notes Editor + Quick Suggestions */}
-                    {userRole === "DOCTOR" ? (
+                    {effectiveRole === "DOCTOR" ? (
                       <div className="space-y-3">
                         <div>
                           <label className="text-xs font-medium text-slate-300 block mb-1.5">
@@ -750,9 +751,9 @@ const VideoCall = ({
                               </Badge>
                             </div>
                             <div className="space-y-1">
-                              {appointment.prescription.items.map((item) => (
+                              {appointment.prescription.items.map((item, idx) => (
                                 <div
-                                  key={item.id}
+                                  key={item.id || idx}
                                   className="text-xs text-slate-300 flex justify-between bg-card/60 p-1.5 rounded border border-teal-900/30"
                                 >
                                   <span className="font-medium text-white">{item.medicineName}</span>
