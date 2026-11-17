@@ -92,7 +92,54 @@ gitGraph
 
 ---
 
-## 3. Elevated UI/UX Design Specifications
+## 3. Medstore-mern Direct Code Mapping Matrix (1-to-1 Translation)
+
+Every database model, API endpoint, controller logic, and frontend view from `Medstore-mern` is mapped directly into CareConnect's stack:
+
+### A. Data Models & Schemas
+
+| `Medstore-mern` (Mongoose/MongoDB) | CareConnect Target (`Prisma/PostgreSQL`) | Architectural Enhancement in CareConnect |
+|---|---|---|
+| `models/Store.js`<br/>(`ownerId`, `storeName`, `ownerName`, `ownerEmail`, `latitude`, `longitude`, `storeAddress`, `addressList`) | `model Store`<br/>(`ownerId`, `storeName`, `ownerName`, `ownerEmail`, `latitude`, `longitude`, `storeAddress`, `city`, `postalCode`) | Adds Admin `verificationStatus` (`PENDING`, `VERIFIED`), `licenseNumber`, `licenseDocumentUrl`, `rating`, relational cascade. |
+| `models/Product.js`<br/>(`storeId`, `productName`, `productDescription`, `productImage`, `productPrice`, `productQuantity`, `productDetails`) | `model Product`<br/>(`storeId`, `name`, `description`, `imageUrl`, `price`, `mrp`, `stockQuantity`, `productDetails`, `category`) | Adds `genericName` (for generic alternatives), `batchNumber`, `expiryDate`, `expiryStatus` (3-tier alerts), `safetyStock`, `maxStockCap` (Anti-Overstock). |
+| `models/Order.js`<br/>(`customerId`, `customerName`, `storeId`, `productId`, `quantity`, `totalPrice`, `deliveryAddress`, `status`) | `model Order` & `model OrderItem`<br/>(`patientId`, `storeId`, `totalAmount`, `deliveryAddress`, `status`, `deliveryType`) | Normalizes into 1-to-Many `OrderItem` records allowing multi-medicine baskets, linked directly to `Prescription`. |
+| `models/Seller.js`<br/>(`firstname`, `lastname`, `email`, `storeId`) | `model User` with `role = SELLER`<br/>linked 1-to-1 with `Store` | Unified Single Sign-On (SSO) via Clerk, eliminating dual separate auth databases. |
+| `models/User.js` (cartItem, address) | `model User` with `credits`, `ordersPlaced`, relational cart/orders | Type-safe queries, relational transactions for credits + medicine purchasing. |
+
+---
+
+### B. Controllers & Backend Business Logic
+
+| `Medstore-mern` Controller (`controllers/private.js`) | Target CareConnect Server Action | Key Improvements |
+|---|---|---|
+| `registerstore` (Lines 85–119) | `actions/store.js: registerStoreAction(formData)` | Uses Clerk session auth, validates coordinates, saves address details, flags as `PENDING` for Admin review. |
+| `addproduct` (Lines 123–149) | `actions/store.js: addProductAction(formData)` | Validates seller ownership, computes initial `expiryStatus`, enforces non-negative price/stock with Zod. |
+| `getallStoreProduct` (Lines 152–172) | `actions/store.js: getStoreInventory(storeId)` | Evaluates `expiryStatus` dynamically, returns low-stock and near-expiry warning tags. |
+| `buyproduct` (Lines 175–201) | `actions/orders.js: createMedicineOrder(orderPayload)` | Wraps order creation and stock decrements in a PostgreSQL ACID transaction `db.$transaction()`. |
+| `getallOrderedProduct` (Lines 204–227) | `actions/store.js: getStoreOrders()` & `updateOrderStatus()` | Real-time status update with validation (`PENDING` ➡️ `ACCEPTED` ➡️ `PREPARING` ➡️ `DELIVERED`). |
+| `searchProduct` (Lines 228–259) | `actions/medicines.js: searchMedicinesWithGeo()` | Upgrades from string address regex to true spherical Haversine geodesic distance calculation ($d \le 10\text{km}$). |
+| `getStoreDetails` (Lines 261–287) | `actions/store.js: updateStoreProfile(formData)` | Type-safe store profile and geo-coordinate updates. |
+| `getrandomproducts` (Lines 290–298) | `actions/medicines.js: getFeaturedMedicines()` | Curates trending medicines, vitamins, and seasonal remedies for the Tata 1mg-style storefront. |
+| `getorderhistory` (Lines 300–308) | `actions/orders.js: getPatientOrderHistory()` | Structured timeline view in the patient's dashboard with itemized receipts. |
+| `getAnalytics` (Lines 310–346)<br/>*Calculates Jan–Dec monthly order count & sales* | `actions/store.js: getStoreAnalytics()` | Dynamic SQL date grouping, revenue calculation, average order value, and profit margin analysis. |
+
+---
+
+### C. Client Pages & Visual Components
+
+| `Medstore-mern` React Component | Target CareConnect Component | UI/UX Enhancement |
+|---|---|---|
+| `client/src/pages/createstore` + `CreateStoreMap.js` | `app/(main)/store/onboarding/page.jsx` | Interactive draggable Leaflet map pin, automatic GPS detect button, document upload for drug license. |
+| `client/src/pages/storedashboard` | `app/(main)/store/page.jsx` | Dark tech-health theme, live KPI widgets (Today Revenue, Pending Orders, Low Stock, Expiry Warnings). |
+| `client/src/pages/addproduct` | `app/(main)/store/_components/add-product-modal.jsx` | Clean Shadcn dialog with dosage forms, strength pills, batch number, and expiry date picker. |
+| `client/src/pages/allproduct` | `app/(main)/store/_components/inventory-table.jsx` | Searchable data table, inline stock adjuster (+/-), and 3-tier expiry badges (🔴 Critical, 🟡 Warning, 🟢 Safe). |
+| `client/src/pages/orders` | `app/(main)/store/_components/orders-manager.jsx` | Order cards with patient details, delivery address, prescription reference, and 1-click status advancement. |
+| `client/src/pages/analytics` | `app/(main)/store/_components/store-analytics.jsx` | Responsive monthly sales curve, product breakdown charts, and top-selling medicine rankings. |
+| `client/src/pages/home` + `Homemap.js` + `addtocartpage` | `app/(main)/medicines/page.jsx` | Tata 1mg-style layout: Doctor Consult Hero Card at top + Category Carousel + Search + Nearby Dukaan Cards + Best-Price Router. |
+
+---
+
+## 4. Elevated UI/UX Design Specifications
 
 CareConnect's sleek modern aesthetic (dark healthcare theme, teal/cyan glowing accents, high-contrast typography, responsive grids) is carried across all four roles.
 
