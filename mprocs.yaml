@@ -1,0 +1,15 @@
+# mprocs configuration for CareConnect
+# Run inside CareConnect directory with: mprocs
+
+procs:
+  next-dev:
+    shell: "npm run dev"
+    autostart: true
+
+  prisma-studio:
+    shell: "npx prisma studio --port 5555"
+    autostart: true
+
+  test-suite:
+    shell: "npm test"
+    autostart: false
