@@ -52,7 +52,7 @@ export default async function DashboardPage({ searchParams }) {
   const prescribedItems = searchData.prescribedItems || [];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full max-w-[1800px] mx-auto pb-6">
       <DashboardClient
         user={user}
         appointments={appointments}

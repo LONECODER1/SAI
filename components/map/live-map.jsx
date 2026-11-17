@@ -153,7 +153,10 @@ export default function LiveMap({
 
   // Address search
   const handleSearchAddress = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!searchQuery.trim()) return;
 
     setSearching(true);
@@ -223,23 +226,31 @@ export default function LiveMap({
       {/* 1. TOP CONTROL BAR: GPS Detection, Address Search & Modality Tabs */}
       <div className="p-3 bg-[#0d1620]/90 backdrop-blur-md border-b border-teal-900/30 flex flex-wrap items-center justify-between gap-3 z-20">
         <div className="flex items-center gap-2 flex-1 min-w-[260px]">
-          <form onSubmit={handleSearchAddress} className="relative flex-1">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-teal-400/70" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSearchAddress(e);
+                }
+              }}
               placeholder="Search neighborhood or city to fly map..."
               className="pl-8 pr-20 h-8 bg-[#070b10] border-teal-900/40 text-xs text-white placeholder:text-muted-foreground focus-visible:ring-teal-500"
             />
             <Button
-              type="submit"
+              type="button"
               size="sm"
+              onClick={handleSearchAddress}
               disabled={searching}
               className="absolute right-1 top-1 h-6 px-2 text-[10px] bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded"
             >
               {searching ? "Finding..." : "Go"}
             </Button>
-          </form>
+          </div>
 
           <Button
             type="button"

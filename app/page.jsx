@@ -22,11 +22,11 @@ export default function Home() {
                 Your health, connected
               </Badge>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-white">
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-foreground">
                 Expert doctors,
                 <br />
                 just a{" "}
-                <span className="text-white whitespace-nowrap">
+                <span className="text-teal-600 dark:text-teal-400 whitespace-nowrap">
                   tap away
                 </span>
               </h1>
@@ -52,7 +52,7 @@ export default function Home() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-teal-700/30 hover:bg-muted/80 text-white px-8 py-6 text-base"
+                    className="border-teal-700/30 hover:bg-muted/80 text-foreground px-8 py-6 text-base"
                   >
                     View Pricing & Credits
                   </Button>
@@ -76,7 +76,7 @@ export default function Home() {
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               How It Works
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -94,7 +94,7 @@ export default function Home() {
                     <div className="bg-teal-900/20 p-3 rounded-lg w-fit mb-4">
                       {features.icon}
                     </div>
-                    <CardTitle className="text-xl font-semibold text-white">
+                    <CardTitle className="text-xl font-semibold text-foreground">
                       {features.title}
                     </CardTitle>
                   </CardHeader>
@@ -115,7 +115,7 @@ export default function Home() {
             <Badge className="bg-teal-900/30 border-teal-700/30 px-4 py-1 text-teal-400 text-sm font-medium mb-4">
               Affordable Healthcare
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Consultation Packages
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -129,7 +129,7 @@ export default function Home() {
             <Pricing/>
             <Card className="mt-12 bg-muted/20 border-teal-900/30">
               <CardHeader>
-                <CardTitle className="text-xl font-semibold text-white flex items-center">
+                <CardTitle className="text-xl font-semibold text-foreground flex items-center">
                   <Stethoscope className="h-5 w-5 mr-2 text-teal-400" />
                   How Our Credit System Works
                 </CardTitle>
@@ -165,7 +165,7 @@ export default function Home() {
             >
               Success Stories
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               What Our Users Say
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
@@ -188,7 +188,7 @@ export default function Home() {
                       </div>
 
                       <div>
-                        <h4 className="font-semibold text-white">
+                        <h4 className="font-semibold text-foreground">
                           {testimonial.name}
                         </h4>
 

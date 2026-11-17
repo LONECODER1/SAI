@@ -30,7 +30,7 @@ const DoctorDashboard = async () => {
   const { payouts } = await getDoctorPayouts();
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container mx-auto px-4 pb-12 pt-2">
       {/* Back to Home Button */}
       <div className="flex justify-start mb-6">
         <Link href="/">

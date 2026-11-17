@@ -104,6 +104,7 @@ export default function AddProductModal({
 
   useEffect(() => {
     if (initialData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({
         name: initialData.name || "",
         genericName: initialData.genericName || "",

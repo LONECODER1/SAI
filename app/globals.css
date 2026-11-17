@@ -136,3 +136,74 @@
 .gradient-title {
   @apply text-teal-600 font-bold pb-1 pr-2;
 }
+
+/* Light mode polish: ensures cards, headers, borders, and accents look premium without modifying dozens of component files */
+html:not(.dark) {
+  /* Generic text that had text-white hardcoded in components */
+  h1.text-white,
+  h2.text-white,
+  h3.text-white,
+  h4.text-white,
+  h5.text-white,
+  h6.text-white,
+  p.text-white,
+  [data-slot="card-title"].text-white {
+    color: var(--foreground);
+  }
+
+  /* Stat numbers and text inside cards/containers without solid dark button backgrounds */
+  span.text-white:not([class*="bg-teal-6"]):not([class*="bg-teal-7"]):not([class*="bg-blue"]):not([class*="bg-black"]):not([class*="bg-destructive"]),
+  div.text-white:not([class*="bg-teal-6"]):not([class*="bg-teal-7"]):not([class*="bg-blue"]):not([class*="bg-black"]):not([class*="bg-destructive"]) {
+    color: var(--foreground);
+  }
+
+  /* Outline buttons and buttons with text-white without solid background */
+  button.text-white:not([class*="bg-teal-6"]):not([class*="bg-teal-7"]):not([class*="bg-blue"]):not([class*="bg-black"]):not([class*="bg-destructive"]),
+  a.text-white:not([class*="bg-teal-6"]):not([class*="bg-teal-7"]):not([class*="bg-blue"]):not([class*="bg-black"]) {
+    color: var(--foreground);
+  }
+
+  /* Links and tabs with hover:text-white */
+  .hover\:text-white:hover {
+    color: var(--foreground);
+  }
+
+  /* Subtle card backgrounds adapt so they don't disappear on white backgrounds */
+  .bg-muted\/20,
+  .bg-muted\/30 {
+    background-color: oklch(0.985 0.005 180);
+  }
+  .bg-muted\/40 {
+    background-color: oklch(0.97 0.01 180);
+  }
+
+  /* Hardcoded dark hex backgrounds in map and modal overlays */
+  .bg-\[\#070b10\],
+  .bg-\[\#060a0f\] {
+    background-color: var(--card);
+    border-color: var(--border);
+  }
+
+  /* Dark teal tint surfaces adapt to fresh light healthcare accents */
+  [class*="bg-teal-900\/"],
+  [class*="bg-teal-950\/"] {
+    background-color: oklch(0.96 0.03 180 / 0.7);
+  }
+
+  /* Dark teal borders adapt to elegant soft borders */
+  [class*="border-teal-900\/"],
+  [class*="border-teal-950\/"] {
+    border-color: oklch(0.88 0.04 180 / 0.6);
+  }
+
+  /* Teal text contrast adjustment for light backgrounds */
+  .text-teal-400 {
+    color: oklch(0.44 0.13 180);
+  }
+  .text-teal-300 {
+    color: oklch(0.40 0.12 180);
+  }
+  .hover\:text-teal-300:hover {
+    color: oklch(0.35 0.14 180);
+  }
+}

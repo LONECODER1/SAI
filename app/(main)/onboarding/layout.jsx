@@ -26,7 +26,7 @@ const OnboardingLayout = async ({ children }) => {
     }
   }
   return (
-    <div className="container mx-auto px-4 pt-24 pb-12">
+    <div className="container mx-auto px-4 pb-12">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl mb-2 gradient-title">

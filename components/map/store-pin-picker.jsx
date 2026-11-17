@@ -75,7 +75,10 @@ export default function StorePinPicker({
   };
 
   const handleSearch = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!searchQuery.trim()) return;
 
     setSearching(true);
@@ -118,23 +121,31 @@ export default function StorePinPicker({
     <div className={`rounded-xl border border-teal-900/40 bg-[#091017] overflow-hidden space-y-0 ${className}`}>
       {/* Top Search & Auto-Detect Controls */}
       <div className="p-3 bg-[#0d1620] border-b border-teal-900/30 flex items-center justify-between gap-2">
-        <form onSubmit={handleSearch} className="relative flex-1">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-teal-400" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSearch(e);
+              }
+            }}
             placeholder="Type pharmacy address or landmark..."
             className="pl-8 pr-16 h-8 bg-[#070b10] border-teal-900/40 text-xs text-white"
           />
           <Button
-            type="submit"
+            type="button"
             size="sm"
+            onClick={handleSearch}
             disabled={searching}
             className="absolute right-1 top-1 h-6 px-2 text-[10px] bg-teal-600 hover:bg-teal-700 text-white rounded"
           >
             {searching ? "..." : "Pin"}
           </Button>
-        </form>
+        </div>
 
         <Button
           type="button"

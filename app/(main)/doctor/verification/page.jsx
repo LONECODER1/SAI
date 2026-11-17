@@ -17,7 +17,7 @@ const DoctorVerification = async () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-2xl">
+    <div className="container mx-auto px-4 pb-12 pt-4 max-w-2xl">
       <Card className="bg-card border-muted text-center py-10">
         <CardHeader>
           <div className="mx-auto bg-teal-900/20 p-4 rounded-full mb-4 w-fit">

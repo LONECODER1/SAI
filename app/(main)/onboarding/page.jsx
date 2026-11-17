@@ -280,11 +280,19 @@ const OnboardingPage = () => {
                       <SelectValue placeholder="Select your medical specialty" />
                     </SelectTrigger>
                     <SelectContent>
-                      {SPECIALTIES.map((spec) => (
-                        <SelectItem key={spec} value={spec}>
-                          {spec}
-                        </SelectItem>
-                      ))}
+                      {SPECIALTIES.map((spec) => {
+                        const specialtyName = typeof spec === "object" ? spec.name : spec;
+                        return (
+                          <SelectItem key={specialtyName} value={specialtyName}>
+                            <div className="flex items-center gap-2">
+                              {typeof spec === "object" && spec.icon && (
+                                <span className="text-teal-400 shrink-0">{spec.icon}</span>
+                              )}
+                              <span>{specialtyName}</span>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 )}

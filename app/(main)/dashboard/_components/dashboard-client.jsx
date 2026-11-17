@@ -27,13 +27,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import dynamic from "next/dynamic";
 import { AppointmentCard } from "@/components/appointment-card";
 import MedicineCatalog from "@/app/(main)/medicines/_components/medicine-catalog";
 import FlashClearanceShelf from "@/app/(main)/medicines/_components/flash-clearance-shelf";
-import CartDrawer from "@/app/(main)/medicines/_components/cart-drawer";
-import LiveMap from "@/components/map/live-map";
 import { SPECIALTIES } from "@/lib/specialities";
 import { toast } from "sonner";
+
+// Dynamically import heavy drawer and map components to keep initial compile and render ultra-fast
+const CartDrawer = dynamic(
+  () => import("@/app/(main)/medicines/_components/cart-drawer"),
+  { ssr: false }
+);
+const LiveMap = dynamic(
+  () => import("@/components/map/live-map"),
+  { ssr: false }
+);
 
 export default function DashboardClient({
   user,
@@ -179,20 +188,26 @@ export default function DashboardClient({
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1.5">
               <Badge
                 variant="outline"
-                className="bg-teal-900/40 border-teal-700/50 text-teal-300 text-xs px-2.5 py-0.5"
+                className="bg-teal-900/40 border-teal-700/50 text-teal-300 text-[11px] px-2 py-0.5"
               >
                 <Sparkles className="h-3 w-3 mr-1 text-teal-400" />
-                Unified Health & Telepharmacy Hub
+                CareConnect Healthcare Hub
               </Badge>
+              <span className="text-[11px] text-muted-foreground font-mono">
+                ID: #{user?.id ? user.id.slice(0, 8).toUpperCase() : "CC-PATIENT"}
+              </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-              Welcome back, {user?.name || "Patient"}
-            </h1>
-            <p className="text-muted-foreground text-sm mt-1 max-w-xl">
-              Manage doctor consultations, join encrypted video rooms, order prescribed medicines from verified local Dukaans, and track deliveries—all in one place.
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs text-teal-400 font-bold uppercase tracking-wider">Patient:</span>
+              <h1 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">
+                {user?.name || "Patient"}
+              </h1>
+            </div>
+            <p className="text-muted-foreground text-xs mt-1 max-w-xl">
+              Doctor video consultations, certified e-prescriptions, local Dukaan medicine discovery with packaging images, and Google Maps wayfinding.
             </p>
           </div>
 
@@ -335,7 +350,7 @@ export default function DashboardClient({
                         Doctor Consultations
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Encrypted Vonage video appointments & e-prescriptions
+                        Instant encrypted Vonage video appointments & verified e-prescriptions
                       </CardDescription>
                     </div>
                   </div>
@@ -392,18 +407,38 @@ export default function DashboardClient({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-6 px-4 rounded-xl bg-muted/10 border border-teal-900/20">
-                    <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <h4 className="text-sm font-semibold text-white">No upcoming consults</h4>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-                      Need medical advice? Book an immediate video appointment with a verified specialist.
-                    </p>
+                  <div className="p-4 rounded-xl bg-muted/10 border border-teal-900/20 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                        <Stethoscope className="h-4 w-4 text-teal-400" />
+                        Option Your Doctor by Specialty:
+                      </h4>
+                      <Badge variant="outline" className="border-teal-700 text-teal-300 text-[10px]">
+                        Available in 10m
+                      </Badge>
+                    </div>
+
+                    {/* Doctor Specialty Options */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {SPECIALTIES.slice(0, 6).map((spec) => (
+                        <Link key={spec.name} href={`/doctors/${encodeURIComponent(spec.name)}`}>
+                          <div className="p-2 rounded-lg bg-teal-950/20 border border-teal-900/30 hover:border-teal-600 hover:bg-teal-900/30 transition-all cursor-pointer text-center">
+                            <span className="text-xs font-semibold text-teal-300 block truncate">
+                              {spec.name}
+                            </span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+
+                    {/* Dedicated Button on Doctor Part */}
                     <Button
                       size="sm"
                       onClick={() => handleTabChange("doctors")}
-                      className="mt-3 bg-teal-600 hover:bg-teal-700 text-xs"
+                      className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs h-9 gap-1.5 shadow-md shadow-teal-900/40 mt-1"
                     >
-                      Book a Doctor (10 min)
+                      <Stethoscope className="h-4 w-4" />
+                      <span>Book Doctor Consultation Now</span>
                     </Button>
                   </div>
                 )}
@@ -414,7 +449,7 @@ export default function DashboardClient({
                     Fast Specialty Access:
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {SPECIALTIES.slice(0, 4).map((spec) => (
+                    {SPECIALTIES.slice(0, 6).map((spec) => (
                       <Link key={spec.name} href={`/doctors/${encodeURIComponent(spec.name)}`}>
                         <Badge
                           variant="outline"
@@ -619,6 +654,46 @@ export default function DashboardClient({
               </div>
             </div>
           )}
+
+          {/* ========================================================= */}
+          {/* MANDATED: ALL MEDICINES SECTION WITH PACKAGING IMAGES     */}
+          {/* ========================================================= */}
+          <div className="pt-6 border-t border-teal-900/40 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-teal-900/30">
+              <div>
+                <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
+                  <Pill className="h-5 w-5 text-teal-400" />
+                  All Available Pharmacy Medicines (Local Dukaan Catalog)
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Click any medicine image to inspect specifications and see all stocking stores in ascending order of distance.
+                </p>
+              </div>
+              <Badge variant="outline" className="border-teal-700/60 text-teal-300 text-xs py-1 px-3">
+                <Sparkles className="h-3 w-3 mr-1 text-teal-400" />
+                With Product Packaging Images & Proximity Routing
+              </Badge>
+            </div>
+
+            {/* Flash Clearance Shelf (Suggestion 2 from AGENTS.md) */}
+            {flashClearanceItems.length > 0 && (
+              <FlashClearanceShelf
+                items={flashClearanceItems}
+                onAddToCart={handleAddToCart}
+                cartItemIds={cartItemIds}
+              />
+            )}
+
+            {/* Tata 1mg-Style Catalog with Images & Ascending Distance Store Finder */}
+            <MedicineCatalog
+              initialProducts={initialProducts}
+              nearbyStores={nearbyStores}
+              onAddToCart={handleAddToCart}
+              cartItemIds={cartItemIds}
+              userLat={25.2425}
+              userLng={86.9842}
+            />
+          </div>
         </div>
       )}
 

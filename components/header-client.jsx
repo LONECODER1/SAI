@@ -10,6 +10,9 @@ import {
 } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import ThemeToggle from "@/components/theme-toggle";
+import { dark } from "@clerk/themes";
+import { useTheme } from "next-themes";
 import {
   Calendar,
   Stethoscope,
@@ -21,8 +24,10 @@ import {
 } from "lucide-react";
 
 export default function HeaderClient({ user }) {
+  const { resolvedTheme } = useTheme();
+
   return (
-    <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-10 supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 w-full border-b bg-background/80 backdrop-blur-md z-50 supports-[backdrop-filter]:bg-background/60">
       <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-3 group">
@@ -156,6 +161,7 @@ export default function HeaderClient({ user }) {
           <SignedIn>
             <UserButton
               appearance={{
+                baseTheme: resolvedTheme === "dark" ? dark : undefined,
                 elements: {
                   avatarBox: "w-8 h-8",
                   userButtonPopoverCard: "shadow-xl",
@@ -164,6 +170,8 @@ export default function HeaderClient({ user }) {
               }}
             />
           </SignedIn>
+
+          <ThemeToggle />
         </div>
       </nav>
     </header>

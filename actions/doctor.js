@@ -282,39 +282,72 @@ export async function addAppointmentNotes(formData) {
       throw new Error("Doctor not found");
     }
 
-    const appointmentId=formData.get("appointment");
-    const notes=formData.get("notes");
+    const appointmentId = typeof formData?.get === "function"
+      ? (formData.get("appointmentId") || formData.get("appointment"))
+      : (formData?.appointmentId || formData?.appointment);
+    const notes = typeof formData?.get === "function"
+      ? formData.get("notes")
+      : formData?.notes;
 
- const appointment = await db.appointment.findUnique({
-  where: {
-    id: appointmentId,
-    doctorId: doctor.id,
-  },
-});
+    if (!appointmentId) {
+      throw new Error("Appointment ID is required");
+    }
 
-if (!appointment) {
-  throw new Error("Appointment not found");
-}
+    const appointment = await db.appointment.findUnique({
+      where: {
+        id: appointmentId,
+        doctorId: doctor.id,
+      },
+    });
 
-const updatedAppointment = await db.appointment.update({
-  where: {
-    id: appointmentId,
-  },
-  data: {
-    notes,
-  },
-});
+    if (!appointment) {
+      throw new Error("Appointment not found");
+    }
 
-revalidatePath("/doctor");
+    const updatedAppointment = await db.appointment.update({
+      where: {
+        id: appointmentId,
+      },
+      data: {
+        notes,
+      },
+      include: {
+        patient: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            imageUrl: true,
+          },
+        },
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            specialty: true,
+          },
+        },
+        prescription: {
+          include: {
+            items: true,
+          },
+        },
+      },
+    });
 
-return {
-  success: true,
-  appointment: updatedAppointment,
-};
+    revalidatePath("/doctor");
+    revalidatePath("/dashboard");
+    revalidatePath("/video-call");
+    revalidatePath("/appointments");
+
+    return {
+      success: true,
+      appointment: updatedAppointment,
+    };
+  } catch (error) {
+    throw new Error("Failed to update notes: " + error.message);
   }
-catch (error) {
-  throw new Error("Failed to update notes: " + error.message);
-}
 }
 
 export async function markAppointmentCompleted(formData) {
@@ -336,63 +369,66 @@ export async function markAppointmentCompleted(formData) {
       throw new Error("Doctor not found");
     }
 
-    const appointmentId=formData.get("appointment");
-    if(!appointmentId){
+    const appointmentId = typeof formData?.get === "function"
+      ? (formData.get("appointmentId") || formData.get("appointment"))
+      : (formData?.appointmentId || formData?.appointment);
+
+    if (!appointmentId) {
       throw new Error("Appointment ID is required");
     }
 
- const appointment = await db.appointment.findUnique({
-  where: {
-    id: appointmentId,
-    doctorId: doctor.id,
-  },
+    const appointment = await db.appointment.findUnique({
+      where: {
+        id: appointmentId,
+        doctorId: doctor.id,
+      },
+      include: {
+        patient: true,
+      },
+    });
 
-  include:{
-    patient:true,
-  },
-});
+    if (!appointment) {
+      throw new Error("Appointment not found");
+    }
 
-if (!appointment) {
-  throw new Error("Appointment not found");
-}
+    if (appointment.status !== "SCHEDULED") {
+      throw new Error(
+        "Only scheduled appointments can be marked as completed"
+      );
+    }
 
+    const now = new Date();
+    const appointmentEndTime = new Date(appointment.endTime);
 
-if (appointment.status !== "SCHEDULED") {
-  throw new Error(
-    "Only scheduled appointments can be marked as completed"
-  );
-}
+    if (now < appointmentEndTime) {
+      throw new Error(
+        "Cannot mark appointment as completed before the scheduled end time"
+      );
+    }
 
-const now = new Date();
-const appointmentEndTime = new Date(appointment.endTime);
+    const updatedAppointment = await db.appointment.update({
+      where: {
+        id: appointmentId,
+      },
+      data: {
+        status: "COMPLETED",
+      },
+    });
 
-if (now < appointmentEndTime) {
-  throw new Error(
-    "Cannot mark appointment as completed before the scheduled end time"
-  );
-}
+    revalidatePath("/doctor");
+    revalidatePath("/dashboard");
+    revalidatePath("/video-call");
+    revalidatePath("/appointments");
 
-const updatedAppointment = await db.appointment.update({
-  where: {
-    id: appointmentId,
-  },
-  data: {
-    status: "COMPLETED",
-  },
-});
-
-revalidatePath("/doctor");
-
-return {
-  success: true,
-  appointment: updatedAppointment,
-};
+    return {
+      success: true,
+      appointment: updatedAppointment,
+    };
+  } catch (error) {
+    throw new Error(
+      "Failed to mark appointment as completed: " + error.message
+    );
   }
-  catch (error) {
-  throw new Error(
-    "Failed to mark appointment as completed: " + error.message
-  );
-}
 }
 
 // =============================================================

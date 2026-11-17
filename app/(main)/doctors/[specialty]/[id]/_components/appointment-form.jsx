@@ -34,57 +34,53 @@ const AppointmentForm = ({ doctorId, slot, onBack, onComplete }) => {
 
   return (
     <form className="space-y-6" onSubmit={handleSubmit}>
-      <div className="bg-muted/20 p-4 rounded-lg border border-teal-900/20 space-y-3">
-        <div className="flex items-center">
-          <Calendar className="h-5 w-5 text-teal-400 mr-2" />
-
-          <span className="text-white font-medium">
+      <div className="bg-[#060a0f] p-5 rounded-2xl border border-teal-900/40 space-y-3">
+        <div className="flex items-center text-sm sm:text-base">
+          <Calendar className="h-4 w-4 text-teal-400 mr-2.5 shrink-0" />
+          <span className="text-white font-semibold">
             {format(new Date(slot.startTime), "EEEE, MMMM d, yyyy")}
           </span>
         </div>
 
-        <div className="flex items-center">
-          <Clock className="h-5 w-5 text-teal-400 mr-2" />
-
-          <span className="text-white">{slot.formatted}</span>
+        <div className="flex items-center text-sm">
+          <Clock className="h-4 w-4 text-teal-400 mr-2.5 shrink-0" />
+          <span className="text-white font-medium">{slot.formatted} (30 Minutes Video Consult)</span>
         </div>
 
-        <div className="flex items-center">
-          <CreditCard className="h-5 w-5 text-teal-400 mr-2" />
-
+        <div className="flex items-center text-sm pt-2 border-t border-white/5">
+          <CreditCard className="h-4 w-4 text-teal-400 mr-2.5 shrink-0" />
           <span className="text-muted-foreground">
-            Cost:
-            <span className="text-white font-medium"> 2 credits</span>
+            Consultation Fee:
+            <span className="text-teal-300 font-bold ml-1">2 Credits</span>
           </span>
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">
-          Describe your medical concern (optional)
+        <Label htmlFor="description" className="text-white font-medium text-xs sm:text-sm">
+          Describe your symptoms or medical concern (optional)
         </Label>
 
         <Textarea
           id="description"
-          placeholder="Please provide any details about your medical concern or what you'd like to discuss in the appointment..."
+          placeholder="Please provide any details about your symptoms, medical history, or what you would like to discuss with the doctor..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="bg-background border-teal-900/20 h-32"
+          className="bg-[#060a0f] border-teal-900/35 rounded-2xl h-32 text-sm text-white focus-visible:ring-teal-500"
         />
 
-        <p className="text-sm text-muted-foreground">
-          This information will be shared with the doctor before your
-          appointment.
+        <p className="text-xs text-muted-foreground">
+          This clinical note will be shared with the verified doctor in advance of your encrypted Vonage video session.
         </p>
       </div>
 
-      <div className="flex justify-between pt-2">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
         <Button
           type="button"
           variant="outline"
           onClick={onBack}
           disabled={loading}
-          className="border-teal-900/30"
+          className="border-teal-900/40 text-teal-300 hover:bg-teal-950/30 text-xs sm:text-sm h-11 px-5 rounded-xl"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Change Time Slot
@@ -93,15 +89,15 @@ const AppointmentForm = ({ doctorId, slot, onBack, onComplete }) => {
         <Button
           type="submit"
           disabled={loading}
-          className="bg-teal-600 hover:bg-teal-700"
+          className="bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm h-11 px-7 rounded-xl shadow-lg shadow-teal-900/40"
         >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Booking...
+              Confirming Booking...
             </>
           ) : (
-            "Confirm Booking"
+            "Confirm & Book Video Appointment"
           )}
         </Button>
       </div>

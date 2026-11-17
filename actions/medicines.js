@@ -136,8 +136,8 @@ export async function searchMedicinesAndStores({
         { description: { contains: query.trim(), mode: "insensitive" } },
       ];
 
-      // Record DemandSignal for patient search
-      await db.demandSignal.create({
+      // Record DemandSignal asynchronously without blocking the user query response
+      db.demandSignal.create({
         data: {
           medicineName: query.trim(),
           latitude: lat,
@@ -145,7 +145,7 @@ export async function searchMedicinesAndStores({
           signalType: "SEARCH",
           weight: 0.5,
         },
-      });
+      }).catch((err) => console.warn("DemandSignal record error:", err.message));
     }
 
     const products = await db.product.findMany({

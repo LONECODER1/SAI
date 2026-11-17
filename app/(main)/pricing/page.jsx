@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import Pricing from "@/components/pricing";
 const PricingPage = () => {
   return (
-    <div className="container mx-auto px-4 mt-24">
+    <div className="container mx-auto px-4">
       {/* Back to Home */}
       <div className="flex justify-start mb-2">
         <Link

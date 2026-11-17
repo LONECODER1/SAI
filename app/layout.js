@@ -13,13 +13,13 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <ClerkProvider appearance={{baseTheme:dark,}}>
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
          <ThemeProvider
             attribute="class"
             defaultTheme="dark"
-            enableSystem={false}
+            enableSystem
             disableTransitionOnChange
           >
              {/*header*/}
@@ -34,11 +34,11 @@ export default function RootLayout({ children }) {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
               <div className="md:col-span-1">
-                <h3 className="text-xl font-bold text-white mb-4">CareConnect</h3>
+                <h3 className="text-xl font-bold text-foreground mb-4">CareConnect</h3>
                 <p className="text-muted-foreground">Expert doctors, just a tap away. Seamless virtual healthcare for everyone.</p>
               </div>
               <div>
-                <h4 className="font-semibold text-white mb-4">Services</h4>
+                <h4 className="font-semibold text-foreground mb-4">Services</h4>
                 <ul className="space-y-2 text-muted-foreground">
                   <li><Link href="/sign-in" className="hover:text-teal-400 transition-colors">Video Consultations</Link></li>
                   <li><Link href="/sign-in" className="hover:text-teal-400 transition-colors">Specialist Referrals</Link></li>
@@ -47,7 +47,7 @@ export default function RootLayout({ children }) {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-white mb-4">Contact Us</h4>
+                <h4 className="font-semibold text-foreground mb-4">Contact Us</h4>
                 <ul className="space-y-2 text-muted-foreground">
                   <li><a href="mailto:support@CareConnect.health" className="hover:text-teal-400 transition-colors">support@CareConnect.health</a></li>
                   <li><a href="tel:+15551234567" className="hover:text-teal-400 transition-colors">+1 (555) 123-4567</a></li>
@@ -55,7 +55,7 @@ export default function RootLayout({ children }) {
                 </ul>
               </div>
               <div>
-                <h4 className="font-semibold text-white mb-4">Legal</h4>
+                <h4 className="font-semibold text-foreground mb-4">Legal</h4>
                 <ul className="space-y-2 text-muted-foreground">
                   <li><a href="#" className="hover:text-teal-400 transition-colors">Privacy Policy</a></li>
                   <li><a href="#" className="hover:text-teal-400 transition-colors">Terms of Service</a></li>

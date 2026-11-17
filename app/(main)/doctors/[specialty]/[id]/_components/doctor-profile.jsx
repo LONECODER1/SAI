@@ -161,18 +161,19 @@ const handleBookingComplete=()=>{
 
         {showBooking && (
           <div id="booking-section">
-            <Card className="border-teal-900/20">
-              <CardHeader>
-                <CardTitle className="text-xl font-bold text-white">
+            <Card className="border-teal-900/40 bg-[#070b12] rounded-3xl shadow-2xl">
+              <CardHeader className="pb-4 border-b border-teal-900/30">
+                <CardTitle className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-teal-400" />
                   Book an Appointment
                 </CardTitle>
 
-                <CardDescription>
-                  Select a time slot and provide details for your consultation
+                <CardDescription className="text-xs sm:text-sm text-muted-foreground">
+                  Select a convenient date and time slot for your encrypted Vonage video consultation.
                 </CardDescription>
               </CardHeader>
 
-              <CardContent>
+              <CardContent className="pt-6">
                 {totalSlots > 0 ? (
                   <>
                   {!selectedSlot && (

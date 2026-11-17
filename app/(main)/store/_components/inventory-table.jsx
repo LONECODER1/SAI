@@ -40,6 +40,7 @@ import {
   Boxes,
   DollarSign,
   TrendingDown,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -50,6 +51,7 @@ import {
 } from "@/actions/store";
 import useFetch from "@/hooks/use-fetch";
 import AddProductModal from "./add-product-modal";
+import { getMedicineImageUrl } from "@/lib/medicine-images";
 
 const CATEGORIES = [
   "ALL",
@@ -292,358 +294,407 @@ export default function InventoryTable({ products = [], storeId }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-5">
       {/* 4 Inventory Health Ribbon Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
-          <span className="text-[11px] text-muted-foreground block">Active Listed SKUs</span>
-          <span className="text-xl font-bold text-white">{products.length}</span>
-          <span className="text-[10px] text-teal-400 block mt-0.5">In catalog</span>
+        <div className="p-4 rounded-2xl bg-card border border-teal-900/30 shadow-sm space-y-1">
+          <span className="text-[11px] text-muted-foreground block font-medium">Active Listed SKUs</span>
+          <span className="text-2xl font-bold text-white">{products.length}</span>
+          <span className="text-[10px] text-teal-400 block">Listed in catalog</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
-          <span className="text-[11px] text-muted-foreground block">Physical Units in Stock</span>
-          <span className="text-xl font-bold text-teal-300">{totalUnits}</span>
-          <span className="text-[10px] text-muted-foreground block mt-0.5">Across all batches</span>
+        <div className="p-4 rounded-2xl bg-card border border-teal-900/30 shadow-sm space-y-1">
+          <span className="text-[11px] text-muted-foreground block font-medium">Physical Units in Stock</span>
+          <span className="text-2xl font-bold text-teal-300">{totalUnits}</span>
+          <span className="text-[10px] text-muted-foreground block">Across all batches</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
-          <span className="text-[11px] text-muted-foreground block">Inventory Valuation</span>
-          <span className="text-xl font-bold text-white">₹{Math.round(totalValuation).toLocaleString()}</span>
-          <span className="text-[10px] text-teal-400 block mt-0.5">At retail pricing</span>
+        <div className="p-4 rounded-2xl bg-card border border-teal-900/30 shadow-sm space-y-1">
+          <span className="text-[11px] text-muted-foreground block font-medium">Inventory Valuation</span>
+          <span className="text-2xl font-bold text-white">₹{Math.round(totalValuation).toLocaleString()}</span>
+          <span className="text-[10px] text-emerald-400 block">At current retail pricing</span>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-card border border-teal-900/30">
-          <span className="text-[11px] text-muted-foreground block">Stockout / Expiry Risk</span>
-          <span className="text-xl font-bold text-amber-400">
+        <div className="p-4 rounded-2xl bg-card border border-teal-900/30 shadow-sm space-y-1">
+          <span className="text-[11px] text-muted-foreground block font-medium">Stockout / Expiry Risk</span>
+          <span className="text-2xl font-bold text-amber-400">
             {lowStockCount + criticalExpiryCount}{" "}
             <span className="text-xs font-normal text-muted-foreground">alerts</span>
           </span>
-          <span className="text-[10px] text-amber-300 block mt-0.5">
+          <span className="text-[10px] text-amber-300 block">
             {lowStockCount} low stock • {criticalExpiryCount} critical expiry
           </span>
         </div>
       </div>
 
-      {/* Controls: Search, Sort & Category Chips */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
-        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+      {/* Controls Bar: Search, Category Chips, Sort & Export */}
+      <div className="w-full p-4 rounded-2xl bg-card border border-teal-900/30 shadow-sm space-y-3.5">
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
-              placeholder="Search by brand, generic formula, or batch #..."
+              placeholder="Search by brand name, active molecule salt, or batch #..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 bg-card border-teal-900/30 text-xs"
+              className="pl-9 bg-muted/20 border-teal-900/30 text-xs h-9"
             />
           </div>
 
-          {/* Sort Selector */}
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-full sm:w-48 bg-card border-teal-900/30 text-xs">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-teal-400" />
-              <SelectValue placeholder="Sort By" />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-teal-900/40 text-xs">
-              <SelectItem value="expiry_asc">Expiry: Soonest First</SelectItem>
-              <SelectItem value="stock_asc">Stock: Lowest First</SelectItem>
-              <SelectItem value="stock_desc">Stock: Highest First</SelectItem>
-              <SelectItem value="price_asc">Price: Low to High</SelectItem>
-              <SelectItem value="price_desc">Price: High to Low</SelectItem>
-              <SelectItem value="name_asc">Name: A to Z</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            {/* Sort Selector */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-44 bg-muted/20 border-teal-900/30 text-xs h-9">
+                <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-teal-400" />
+                <SelectValue placeholder="Sort By" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-teal-900/40 text-xs">
+                <SelectItem value="expiry_asc">Expiry: Soonest First</SelectItem>
+                <SelectItem value="stock_asc">Stock: Lowest First</SelectItem>
+                <SelectItem value="stock_desc">Stock: Highest First</SelectItem>
+                <SelectItem value="price_asc">Price: Low to High</SelectItem>
+                <SelectItem value="price_desc">Price: High to Low</SelectItem>
+                <SelectItem value="name_asc">Name: A to Z</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Export to CSV Action */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleExportCSV}
+              className="border-teal-800/40 text-teal-300 hover:bg-teal-950 text-xs gap-1.5 h-9 shrink-0"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
-        {/* Export to CSV Action */}
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handleExportCSV}
-          className="border-teal-800/40 text-teal-300 hover:bg-teal-950 text-xs gap-1.5 shrink-0"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Export CSV
-        </Button>
-      </div>
-
-      {/* Filter by Status Chips */}
-      <div className="flex flex-wrap gap-2 items-center text-xs">
-        <span className="text-muted-foreground font-medium mr-1">Status Filter:</span>
-        <Button
-          size="sm"
-          variant={statusFilter === "ALL" ? "default" : "outline"}
-          onClick={() => setStatusFilter("ALL")}
-          className={statusFilter === "ALL" ? "bg-teal-700 text-white h-7 text-xs" : "h-7 text-xs border-teal-900/30"}
-        >
-          All Items ({products.length})
-        </Button>
-        <Button
-          size="sm"
-          variant={statusFilter === "CRITICAL" ? "default" : "outline"}
-          onClick={() => setStatusFilter("CRITICAL")}
-          className={
-            statusFilter === "CRITICAL"
-              ? "bg-red-700 text-white h-7 text-xs"
-              : "h-7 text-xs border-red-900/40 text-red-300 hover:bg-red-950/20"
-          }
-        >
-          Critical Expiry ({products.filter((p) => p.evaluatedExpiryStatus === "CRITICAL_EXPIRY").length})
-        </Button>
-        <Button
-          size="sm"
-          variant={statusFilter === "APPROACHING" ? "default" : "outline"}
-          onClick={() => setStatusFilter("APPROACHING")}
-          className={
-            statusFilter === "APPROACHING"
-              ? "bg-amber-700 text-white h-7 text-xs"
-              : "h-7 text-xs border-amber-900/40 text-amber-300 hover:bg-amber-950/20"
-          }
-        >
-          Approaching Expiry ({products.filter((p) => p.evaluatedExpiryStatus === "APPROACHING_EXPIRY").length})
-        </Button>
-        <Button
-          size="sm"
-          variant={statusFilter === "LOW_STOCK" ? "default" : "outline"}
-          onClick={() => setStatusFilter("LOW_STOCK")}
-          className={
-            statusFilter === "LOW_STOCK"
-              ? "bg-amber-600 text-black h-7 text-xs"
-              : "h-7 text-xs border-amber-800 text-amber-400 hover:bg-amber-950/20"
-          }
-        >
-          Low Stock ({products.filter((p) => p.isLowStock).length})
-        </Button>
-        <Button
-          size="sm"
-          variant={statusFilter === "FLASH" ? "default" : "outline"}
-          onClick={() => setStatusFilter("FLASH")}
-          className={
-            statusFilter === "FLASH"
-              ? "bg-amber-500 text-black h-7 text-xs"
-              : "h-7 text-xs border-amber-600 text-amber-300 hover:bg-amber-950/20"
-          }
-        >
-          Flash Clearance ({products.filter((p) => p.isFlashSale).length})
-        </Button>
-      </div>
-
-      {/* Inventory Cards / Table */}
-      {filteredProducts.length === 0 ? (
-        <div className="text-center py-12 rounded-xl bg-muted/10 border border-teal-900/20">
-          <Layers className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-white font-medium">No medicines match your filter</p>
-          <p className="text-xs text-muted-foreground mt-1">Try searching a different keyword or reset filters.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3">
-          {filteredProducts.map((item) => (
-            <div
-              key={item.id}
-              className={`p-4 rounded-xl border transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4 ${
-                item.isFlashSale
-                  ? "bg-amber-950/15 border-amber-800/40"
-                  : item.evaluatedExpiryStatus === "CRITICAL_EXPIRY"
-                  ? "bg-red-950/15 border-red-900/30"
-                  : item.isLowStock
-                  ? "bg-amber-950/10 border-amber-900/30"
-                  : "bg-card border-teal-900/20 hover:border-teal-700/40"
+        {/* Category Filter Chips Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          {CATEGORIES.map((cat) => (
+            <Button
+              key={cat}
+              size="sm"
+              variant={selectedCategory === cat ? "default" : "outline"}
+              onClick={() => setSelectedCategory(cat)}
+              className={`h-7 px-3 text-xs shrink-0 rounded-lg transition-all ${
+                selectedCategory === cat
+                  ? "bg-teal-600 text-white font-medium"
+                  : "border-teal-900/30 text-muted-foreground hover:text-white hover:bg-muted/30"
               }`}
             >
-              {/* Product Info */}
-              <div className="space-y-1.5 max-w-xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-base font-semibold text-white tracking-wide">
-                    {item.name}
-                  </h4>
-                  {item.dosageForm && (
-                    <Badge variant="outline" className="text-xs border-teal-800/40 text-teal-300">
-                      {item.dosageForm} {item.strength ? `• ${item.strength}` : ""}
-                    </Badge>
-                  )}
-                  {item.batchNumber && (
-                    <span className="text-xs font-mono text-muted-foreground bg-muted/30 px-2 py-0.5 rounded">
-                      {item.batchNumber}
-                    </span>
-                  )}
-                </div>
+              {cat}
+            </Button>
+          ))}
+        </div>
 
-                {item.genericName && (
-                  <p className="text-xs text-teal-400/90 font-medium font-mono">
-                    Generic Formula: {item.genericName}
-                  </p>
-                )}
+        {/* Filter by Status Chips */}
+        <div className="flex flex-wrap gap-1.5 items-center pt-1 border-t border-teal-900/20 text-xs">
+          <span className="text-[11px] text-muted-foreground font-medium mr-1">Status:</span>
+          <Button
+            size="sm"
+            variant={statusFilter === "ALL" ? "default" : "outline"}
+            onClick={() => setStatusFilter("ALL")}
+            className={statusFilter === "ALL" ? "bg-teal-700 text-white h-6 text-[11px] px-2.5" : "h-6 text-[11px] px-2.5 border-teal-900/30"}
+          >
+            All Items ({products.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "CRITICAL" ? "default" : "outline"}
+            onClick={() => setStatusFilter("CRITICAL")}
+            className={
+              statusFilter === "CRITICAL"
+                ? "bg-red-700 text-white h-6 text-[11px] px-2.5"
+                : "h-6 text-[11px] px-2.5 border-red-900/40 text-red-300 hover:bg-red-950/20"
+            }
+          >
+            Critical Expiry ({products.filter((p) => p.evaluatedExpiryStatus === "CRITICAL_EXPIRY").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "APPROACHING" ? "default" : "outline"}
+            onClick={() => setStatusFilter("APPROACHING")}
+            className={
+              statusFilter === "APPROACHING"
+                ? "bg-amber-700 text-white h-6 text-[11px] px-2.5"
+                : "h-6 text-[11px] px-2.5 border-amber-900/40 text-amber-300 hover:bg-amber-950/20"
+            }
+          >
+            Approaching Expiry ({products.filter((p) => p.evaluatedExpiryStatus === "APPROACHING_EXPIRY").length})
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "LOW_STOCK" ? "default" : "outline"}
+            onClick={() => setStatusFilter("LOW_STOCK")}
+            className={
+              statusFilter === "LOW_STOCK"
+                ? "bg-amber-600 text-black h-6 text-[11px] px-2.5 font-bold"
+                : "h-6 text-[11px] px-2.5 border-amber-800 text-amber-400 hover:bg-amber-950/20"
+            }
+          >
+            Low Stock ({products.filter((p) => p.isLowStock).length})
+          </Button>
+          <Button
+            size="sm"
+            variant={statusFilter === "FLASH" ? "default" : "outline"}
+            onClick={() => setStatusFilter("FLASH")}
+            className={
+              statusFilter === "FLASH"
+                ? "bg-amber-500 text-black h-6 text-[11px] px-2.5 font-bold"
+                : "h-6 text-[11px] px-2.5 border-amber-600 text-amber-300 hover:bg-amber-950/20"
+            }
+          >
+            Flash Clearance ({products.filter((p) => p.isFlashSale).length})
+          </Button>
+        </div>
+      </div>
 
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-1">
-                  <span>Category: {item.category}</span>
-                  {item.expiryDate && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Expires: {new Date(item.expiryDate).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </div>
+      {/* Professional Medicine Cards List */}
+      {filteredProducts.length === 0 ? (
+        <div className="text-center py-16 rounded-2xl bg-card border border-teal-900/20 shadow-sm space-y-3">
+          <Layers className="h-10 w-10 text-muted-foreground mx-auto" />
+          <p className="text-white font-semibold">No medicines match your search criteria</p>
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+            Try adjusting your search terms or resetting the category and status filters.
+          </p>
+        </div>
+      ) : (
+        <div className="w-full space-y-3">
+          {filteredProducts.map((item) => {
+            const imageUrl = getMedicineImageUrl(item);
+            const discountPct =
+              item.mrp && item.mrp > item.price
+                ? Math.round(((item.mrp - item.price) / item.mrp) * 100)
+                : 0;
 
-              {/* Status Badges */}
-              <div className="flex flex-wrap items-center gap-2">
-                {item.evaluatedExpiryStatus === "CRITICAL_EXPIRY" && (
-                  <Badge className="bg-red-900/40 border border-red-700/50 text-red-300 gap-1 animate-pulse text-xs">
-                    <AlertTriangle className="h-3 w-3" />
-                    Critical: {item.expiryDaysRemaining}d left
-                  </Badge>
-                )}
-                {item.evaluatedExpiryStatus === "APPROACHING_EXPIRY" && (
-                  <Badge className="bg-amber-900/30 border border-amber-700/40 text-amber-300 gap-1 text-xs">
-                    <Calendar className="h-3 w-3" />
-                    Expiry: {item.expiryDaysRemaining}d
-                  </Badge>
-                )}
-                {item.evaluatedExpiryStatus === "SAFE" && (
-                  <Badge variant="outline" className="border-emerald-800/40 text-emerald-400 text-xs">
-                    Safe ({item.expiryDaysRemaining}d)
-                  </Badge>
-                )}
-                {item.evaluatedExpiryStatus === "EXPIRED" && (
-                  <Badge className="bg-red-950 border border-red-800 text-red-400 text-xs">
-                    <XCircle className="h-3 w-3 mr-1" /> Expired
-                  </Badge>
-                )}
+            return (
+              <div
+                key={item.id}
+                className={`w-full p-4 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm ${
+                  item.isFlashSale
+                    ? "bg-amber-950/15 border-amber-800/40"
+                    : item.evaluatedExpiryStatus === "CRITICAL_EXPIRY"
+                    ? "bg-red-950/15 border-red-900/40"
+                    : item.isLowStock
+                    ? "bg-amber-950/10 border-amber-900/30"
+                    : "bg-card border-teal-900/30 hover:border-teal-700/50"
+                }`}
+              >
+                {/* Left: Product Thumbnail & Specifications */}
+                <div className="flex items-start gap-3.5">
+                  <div className="relative h-16 w-16 rounded-xl overflow-hidden bg-muted/40 border border-teal-900/30 shrink-0">
+                    <img
+                      src={imageUrl}
+                      alt={item.name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
 
-                {item.isLowStock && (
-                  <Badge className="bg-amber-900/30 border border-amber-800 text-amber-300 text-xs">
-                    Low Stock (&le; {item.safetyStock})
-                  </Badge>
-                )}
-
-                {item.isFlashSale && (
-                  <Badge className="bg-amber-500/20 border border-amber-500/50 text-amber-300 gap-1 font-semibold text-xs">
-                    <Zap className="h-3 w-3 text-amber-400 fill-amber-400" />
-                    50% Flash Clearance
-                  </Badge>
-                )}
-              </div>
-
-              {/* Pricing, Stock & Actions */}
-              <div className="flex items-center justify-between lg:justify-end gap-5 pt-2 lg:pt-0 border-t lg:border-t-0 border-muted/20">
-                {/* Price Display */}
-                <div className="text-left lg:text-right">
-                  {item.isFlashSale ? (
-                    <div>
-                      <span className="text-lg font-bold text-amber-400">
-                        ₹{item.flashSalePrice}
-                      </span>
-                      <span className="text-xs text-muted-foreground line-through ml-1.5">
-                        ₹{item.price}
-                      </span>
-                      <p className="text-[10px] text-amber-300 font-medium">Liquidation Price</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="text-lg font-bold text-white">₹{item.price}</span>
-                      {item.mrp && item.mrp > item.price && (
-                        <span className="text-xs text-muted-foreground line-through ml-1.5">
-                          ₹{item.mrp}
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="text-base font-bold text-white tracking-tight">
+                        {item.name}
+                      </h4>
+                      {item.dosageForm && (
+                        <Badge variant="outline" className="text-[11px] border-teal-800/40 text-teal-300 py-0 px-2">
+                          {item.dosageForm} {item.strength ? `• ${item.strength}` : ""}
+                        </Badge>
+                      )}
+                      {item.batchNumber && (
+                        <span className="text-[11px] font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded border border-muted/20">
+                          {item.batchNumber}
                         </span>
                       )}
-                      <p className="text-[10px] text-teal-400">Unit Retail Price</p>
                     </div>
+
+                    {item.genericName && (
+                      <p className="text-xs text-teal-300 font-mono">
+                        Generic Formulation: {item.genericName}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground pt-0.5">
+                      <span className="text-muted-foreground">Category: {item.category}</span>
+                      {item.expiryDate && (
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-teal-400" />
+                          Batch Expiry: {new Date(item.expiryDate).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Center: Expiry & Stock Badges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {item.evaluatedExpiryStatus === "CRITICAL_EXPIRY" && (
+                    <Badge className="bg-red-900/40 border border-red-700/60 text-red-200 gap-1 animate-pulse text-xs">
+                      <AlertTriangle className="h-3 w-3" />
+                      Critical: {item.expiryDaysRemaining}d left
+                    </Badge>
+                  )}
+                  {item.evaluatedExpiryStatus === "APPROACHING_EXPIRY" && (
+                    <Badge className="bg-amber-900/30 border border-amber-700/40 text-amber-300 gap-1 text-xs">
+                      <Calendar className="h-3 w-3" />
+                      Expires in {item.expiryDaysRemaining}d
+                    </Badge>
+                  )}
+                  {item.evaluatedExpiryStatus === "SAFE" && (
+                    <Badge variant="outline" className="border-emerald-800/40 text-emerald-300 text-xs">
+                      Safe ({item.expiryDaysRemaining}d)
+                    </Badge>
+                  )}
+                  {item.evaluatedExpiryStatus === "EXPIRED" && (
+                    <Badge className="bg-red-950 border border-red-800 text-red-400 text-xs">
+                      <XCircle className="h-3 w-3 mr-1" /> Expired
+                    </Badge>
+                  )}
+
+                  {item.isLowStock && (
+                    <Badge className="bg-amber-900/30 border border-amber-800 text-amber-300 text-xs">
+                      Low Stock (&le; {item.safetyStock})
+                    </Badge>
+                  )}
+
+                  {item.isFlashSale && (
+                    <Badge className="bg-amber-500/20 border border-amber-500/50 text-amber-300 gap-1 font-semibold text-xs">
+                      <Zap className="h-3 w-3 text-amber-400 fill-amber-400" />
+                      50% Flash Clearance
+                    </Badge>
                   )}
                 </div>
 
-                {/* Stock Incrementor with Fast Jump Buttons */}
-                <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border border-teal-900/30">
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-white"
-                    disabled={updatingId === item.id || item.stockQuantity <= 0}
-                    onClick={() => handleStockAdjust(item.id, item.stockQuantity, -1)}
-                    title="Decrease 1 unit"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="w-8 text-center font-bold text-sm text-white">
-                    {updatingId === item.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-teal-400" />
+                {/* Right: Price, Stock Stepper & Quick Actions */}
+                <div className="flex items-center justify-between md:justify-end gap-4 pt-2 md:pt-0 border-t md:border-t-0 border-muted/20 shrink-0">
+                  {/* Price */}
+                  <div className="text-left md:text-right">
+                    {item.isFlashSale ? (
+                      <div>
+                        <span className="text-lg font-bold text-amber-400">
+                          ₹{item.flashSalePrice}
+                        </span>
+                        <span className="text-xs text-muted-foreground line-through ml-1.5">
+                          ₹{item.price}
+                        </span>
+                        <p className="text-[10px] text-amber-300 font-medium">Liquidation Deal</p>
+                      </div>
                     ) : (
-                      item.stockQuantity
+                      <div>
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-lg font-bold text-white">₹{item.price}</span>
+                          {item.mrp && item.mrp > item.price && (
+                            <span className="text-xs text-muted-foreground line-through">
+                              ₹{item.mrp}
+                            </span>
+                          )}
+                          {discountPct > 0 && (
+                            <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/60 px-1 rounded border border-emerald-800/40">
+                              {discountPct}% OFF
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-teal-400">Unit Retail Price</p>
+                      </div>
                     )}
-                  </span>
+                  </div>
+
+                  {/* Stock Stepper */}
+                  <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-xl border border-teal-900/30">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-white"
+                      disabled={updatingId === item.id || item.stockQuantity <= 0}
+                      onClick={() => handleStockAdjust(item.id, item.stockQuantity, -1)}
+                      title="Decrease 1 unit"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="w-8 text-center font-bold text-sm text-white">
+                      {updatingId === item.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto text-teal-400" />
+                      ) : (
+                        item.stockQuantity
+                      )}
+                    </span>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-white"
+                      disabled={updatingId === item.id}
+                      onClick={() => handleStockAdjust(item.id, item.stockQuantity, +1)}
+                      title="Increase 1 unit"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                    <button
+                      type="button"
+                      disabled={updatingId === item.id}
+                      onClick={() => handleStockAdjust(item.id, item.stockQuantity, +10)}
+                      className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground hover:text-white border border-teal-900/30 font-mono"
+                      title="Quick add 10 units"
+                    >
+                      +10
+                    </button>
+                  </div>
+
+                  {/* Flash Clearance Toggle */}
+                  {item.isEligibleForFlashSale && (
+                    <Button
+                      size="sm"
+                      variant={item.isFlashSale ? "outline" : "default"}
+                      onClick={() => handleToggleFlashSale(item.id, item.isFlashSale)}
+                      disabled={updatingId === item.id}
+                      className={
+                        item.isFlashSale
+                          ? "border-amber-700/50 text-amber-300 hover:bg-amber-950/40 text-xs h-8"
+                          : "bg-amber-600 hover:bg-amber-700 text-black font-semibold text-xs gap-1 h-8"
+                      }
+                    >
+                      <Zap className="h-3 w-3" />
+                      {item.isFlashSale ? "Exit Flash" : "Flash @ 50%"}
+                    </Button>
+                  )}
+
+                  {/* Clone Batch Button */}
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-7 w-7 text-muted-foreground hover:text-white"
-                    disabled={updatingId === item.id}
-                    onClick={() => handleStockAdjust(item.id, item.stockQuantity, +1)}
-                    title="Increase 1 unit"
+                    className="h-8 w-8 text-muted-foreground hover:text-teal-300 hover:bg-teal-950/30"
+                    onClick={() => openCloneModal(item)}
+                    title="Clone details into a new batch"
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Copy className="h-3.5 w-3.5" />
                   </Button>
-                  <button
-                    type="button"
-                    disabled={updatingId === item.id}
-                    onClick={() => handleStockAdjust(item.id, item.stockQuantity, +10)}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground hover:text-white border border-teal-900/30 font-mono"
-                    title="Quick add 10 units"
-                  >
-                    +10
-                  </button>
-                </div>
 
-                {/* Flash Clearance Toggle */}
-                {item.isEligibleForFlashSale && (
+                  {/* Edit Button */}
                   <Button
-                    size="sm"
-                    variant={item.isFlashSale ? "outline" : "default"}
-                    onClick={() => handleToggleFlashSale(item.id, item.isFlashSale)}
-                    disabled={updatingId === item.id}
-                    className={
-                      item.isFlashSale
-                        ? "border-amber-700/50 text-amber-300 hover:bg-amber-950/40 text-xs"
-                        : "bg-amber-600 hover:bg-amber-700 text-black font-semibold text-xs gap-1"
-                    }
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-white"
+                    onClick={() => openEditModal(item)}
+                    title="Edit medicine details"
                   >
-                    <Zap className="h-3 w-3" />
-                    {item.isFlashSale ? "Exit Flash Sale" : "Flash Sale @ 50%"}
+                    <Edit2 className="h-3.5 w-3.5" />
                   </Button>
-                )}
 
-                {/* Clone / Add New Batch Button */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-muted-foreground hover:text-teal-300 hover:bg-teal-950/30"
-                  onClick={() => openCloneModal(item)}
-                  title="Clone details into a new batch"
-                >
-                  <Copy className="h-3.5 w-3.5" />
-                </Button>
-
-                {/* Edit Button */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-muted-foreground hover:text-white"
-                  onClick={() => openEditModal(item)}
-                  title="Edit medicine details"
-                >
-                  <Edit2 className="h-3.5 w-3.5" />
-                </Button>
-
-                {/* Delete Button */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/20"
-                  onClick={() => handleDeleteProduct(item.id, item.name)}
-                  title="Remove from inventory"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                  {/* Delete Button */}
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-red-400 hover:bg-red-950/20"
+                    onClick={() => handleDeleteProduct(item.id, item.name)}
+                    title="Remove from inventory"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
