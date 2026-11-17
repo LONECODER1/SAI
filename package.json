@@ -11,7 +11,7 @@
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "node scripts/patch-lucide.js && prisma generate"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
