@@ -1,6 +1,6 @@
-# CareConnect
+# MedStore
 
-CareConnect is a modern healthcare platform built to bridge the gap between patients and medical professionals. It enables patients to easily book appointments, consult with doctors, and manage their health journey. For doctors, it provides tools to manage their availability, handle appointments, and track earnings.
+MedStore is a modern healthcare platform built to bridge the gap between patients and medical professionals. It enables patients to easily book appointments, consult with doctors, and manage their health journey. For doctors, it provides tools to manage their availability, handle appointments, and track earnings.
 
 ## 🚀 Features
 
@@ -30,7 +30,7 @@ CareConnect is a modern healthcare platform built to bridge the gap between pati
 
 ## 🏗️ Architecture & How It Works
 
-CareConnect uses a modern Full-Stack Next.js architecture (App Router) combined with Server Actions for secure and seamless data fetching.
+MedStore uses a modern Full-Stack Next.js architecture (App Router) combined with Server Actions for secure and seamless data fetching.
 
 ```mermaid
 graph TD
@@ -135,7 +135,7 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-username/CareConnect.git
+   git clone https://github.com/your-username/MedStore.git
    cd CareConnect
    ```
 

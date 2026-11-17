@@ -12,7 +12,7 @@ import StoreDashboardClient from "./_components/store-dashboard-client";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Dukaan Dashboard - CareConnect",
+  title: "Dukaan Dashboard - MedStore",
   description: "Manage pharmacy inventory, expiry warnings, orders, and restock intelligence",
 };
 

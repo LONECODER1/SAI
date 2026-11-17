@@ -62,7 +62,7 @@ export default function Home() {
 
             <div className="relative h-[300px] sm:h-[400px] lg:h-[450px] w-full">
               <Image
-                src="/careconnect-surgeons-2.jpg"
+                src="/medstore-surgeons-2.jpg"
                 alt="Medical Professional Preparing"
                 fill
                 priority

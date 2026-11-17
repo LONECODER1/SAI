@@ -87,7 +87,7 @@ export default function GoogleMapStoreView({
     if (navigator.share) {
       navigator.share({
         title: store.storeName,
-        text: `Find medicines at ${store.storeName} on CareConnect`,
+        text: `Find medicines at ${store.storeName} on MedStore`,
         url: googleMapsAppUrl,
       });
     } else {

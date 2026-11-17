@@ -194,7 +194,7 @@ export default function DashboardClient({
                 className="bg-teal-900/40 border-teal-700/50 text-teal-300 text-[11px] px-2 py-0.5"
               >
                 <Sparkles className="h-3 w-3 mr-1 text-teal-400" />
-                CareConnect Healthcare Hub
+                MedStore Healthcare Hub
               </Badge>
               <span className="text-[11px] text-muted-foreground font-mono">
                 ID: #{user?.id ? user.id.slice(0, 8).toUpperCase() : "CC-PATIENT"}

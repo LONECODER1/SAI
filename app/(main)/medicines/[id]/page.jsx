@@ -7,10 +7,10 @@ import SingleMedicineView from "./_components/single-medicine-view";
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const { product } = await getMedicineById(id);
-  if (!product) return { title: "Medicine Not Found - CareConnect" };
+  if (!product) return { title: "Medicine Not Found - MedStore" };
 
   return {
-    title: `${product.name} - CareConnect Telepharmacy`,
+    title: `${product.name} - MedStore Telepharmacy`,
     description: `Order ${product.name} with local pharmacy store finder in ascending distance order and Google Maps navigation`,
   };
 }

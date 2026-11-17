@@ -7,7 +7,7 @@ import { redirect } from "next/navigation";
 import DashboardClient from "./_components/dashboard-client";
 
 export const metadata = {
-  title: "Patient Dashboard - CareConnect",
+  title: "Patient Dashboard - MedStore",
   description: "Unified Telehealth Consultations & Local Dukaan Telepharmacy Dashboard",
 };
 

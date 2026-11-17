@@ -13,7 +13,7 @@ async function seedBhagalpur() {
     primaryUser = await prisma.user.create({
       data: {
         clerkUserId: "user_seed_aditya_bgp",
-        email: "aditya.bgp@careconnect.in",
+        email: "aditya.bgp@medstore.in",
         name: "Aditya Gupta",
         role: "SELLER",
         credits: 10,
@@ -29,7 +29,7 @@ async function seedBhagalpur() {
   const doctorsData = [
     {
       clerkUserId: "doctor_bgp_alok_verma",
-      email: "dr.alokverma.bgp@careconnect.in",
+      email: "dr.alokverma.bgp@medstore.in",
       name: "Dr. Alok Kumar Verma",
       role: "DOCTOR",
       specialty: "General Physician",
@@ -41,7 +41,7 @@ async function seedBhagalpur() {
     },
     {
       clerkUserId: "doctor_bgp_priya_sneha",
-      email: "dr.priyasneha.bgp@careconnect.in",
+      email: "dr.priyasneha.bgp@medstore.in",
       name: "Dr. Priya Sneha",
       role: "DOCTOR",
       specialty: "Pediatrician",
@@ -53,7 +53,7 @@ async function seedBhagalpur() {
     },
     {
       clerkUserId: "doctor_bgp_rakesh_ranjan",
-      email: "dr.rakeshranjan.bgp@careconnect.in",
+      email: "dr.rakeshranjan.bgp@medstore.in",
       name: "Dr. Rakesh Ranjan",
       role: "DOCTOR",
       specialty: "Cardiologist",

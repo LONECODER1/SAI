@@ -45,7 +45,7 @@ describe("Unified User Dashboard & Auth Integration Protocol", () => {
     }
 
     // Public asset paths that must NOT be protected
-    const publicPaths = ["/icon.svg", "/careconnect-surgeons-2.jpg"];
+    const publicPaths = ["/icon.svg", "/medstore-surgeons-2.jpg"];
     for (const path of publicPaths) {
       const isProtected = regexMap.some((regex) => regex.test(path));
       assert.equal(

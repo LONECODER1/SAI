@@ -286,7 +286,7 @@ export default function InventoryTable({ products = [], storeId }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `CareConnect_Inventory_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute("download", `MedStore_Inventory_${new Date().toISOString().split("T")[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

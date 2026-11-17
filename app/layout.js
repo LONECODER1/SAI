@@ -7,7 +7,7 @@ import {dark} from "@clerk/themes";
 import { Toaster } from "sonner";
 
 export const metadata = {
-  title: "CareConnect",
+  title: "MedStore",
   description: "Connect with doctors anytime, anywhere",
 };
 
@@ -34,7 +34,7 @@ export default function RootLayout({ children }) {
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
               <div className="md:col-span-1">
-                <h3 className="text-xl font-bold text-foreground mb-4">CareConnect</h3>
+                <h3 className="text-xl font-bold text-foreground mb-4">MedStore</h3>
                 <p className="text-muted-foreground">Expert doctors, just a tap away. Seamless virtual healthcare for everyone.</p>
               </div>
               <div>
@@ -49,7 +49,7 @@ export default function RootLayout({ children }) {
               <div>
                 <h4 className="font-semibold text-foreground mb-4">Contact Us</h4>
                 <ul className="space-y-2 text-muted-foreground">
-                  <li><a href="mailto:support@CareConnect.health" className="hover:text-teal-400 transition-colors">support@CareConnect.health</a></li>
+                  <li><a href="mailto:support@medstore.health" className="hover:text-teal-400 transition-colors">support@medstore.health</a></li>
                   <li><a href="tel:+15551234567" className="hover:text-teal-400 transition-colors">+1 (555) 123-4567</a></li>
                   <li>123 Health Ave, Medical District<br/>New York, NY 10001</li>
                 </ul>
@@ -64,8 +64,8 @@ export default function RootLayout({ children }) {
               </div>
             </div>
             <div className="pt-8 border-t border-teal-900/20 text-center text-muted-foreground">
-              <p>Made with ❤️ by Shivam</p>
-              <p className="text-sm mt-2">&copy; 2026 CareConnect. All rights reserved.</p>
+              <p>Made with ❤️ by MedStore</p>
+              <p className="text-sm mt-2">&copy; 2026 MedStore. All rights reserved.</p>
             </div>
           </div>
         </footer>

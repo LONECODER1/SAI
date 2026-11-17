@@ -49,7 +49,7 @@ export default function BulkImportModal({ storeId }) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "careconnect_medicine_inventory_template.csv");
+    link.setAttribute("download", "medstore_medicine_inventory_template.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

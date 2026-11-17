@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Admin Settings - CareConnect",
+  title: "Admin Settings - MedStore",
   description: "Manage doctors, patients, and platform settings",
 };
 

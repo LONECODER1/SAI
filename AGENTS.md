@@ -1,13 +1,13 @@
-# AGENTS.md — CareConnect Unified Healthcare & Telepharmacy Ecosystem
+# AGENTS.md — MedStore Unified Healthcare & Telepharmacy Ecosystem
 **System Architecture, Multi-Branch Engineering Protocol & Integration Blueprint**
 
 ---
 
 ## 1. Executive Summary & Vision
 
-**CareConnect** is evolving from a telehealth consultation platform into an **End-to-End Digital Healthcare & Local Telepharmacy Ecosystem**.
+**MedStore** is evolving from a telehealth consultation platform into an **End-to-End Digital Healthcare & Local Telepharmacy Ecosystem**.
 
-By unifying **CareConnect** (Next.js 16 App Router, Neon PostgreSQL, Prisma 6, Clerk Auth, Tailwind CSS 4, Shadcn UI, Vonage Video) with the pharmacy commerce capabilities of **Medstore-mern**, the platform closes the critical loop in patient care:
+By unifying **MedStore** (Next.js 16 App Router, Neon PostgreSQL, Prisma 6, Clerk Auth, Tailwind CSS 4, Shadcn UI, Vonage Video) with the pharmacy commerce capabilities of **Medstore-mern**, the platform closes the critical loop in patient care:
 
 ```
 [Patient Consults Doctor via Vonage Video] 
@@ -16,7 +16,7 @@ By unifying **CareConnect** (Next.js 16 App Router, Neon PostgreSQL, Prisma 6, C
 [Doctor Issues Structured Digital E-Prescription] 
                      │
                      ▼
-[CareConnect Best-Price & Proximity Engine] 
+[MedStore Best-Price & Proximity Engine] 
                      │
                      ▼
 [Nearest Verified Local Store ("Dukaan") Fulfills Order] 
@@ -33,7 +33,7 @@ To ensure clean code separation, verifiable testing, and zero regressions, devel
 
 ```mermaid
 gitGraph
-   commit id: "CareConnect Base"
+   commit id: "MedStore Base"
    branch admin
    branch doctor
    branch store
@@ -94,11 +94,11 @@ gitGraph
 
 ## 3. Medstore-mern Direct Code Mapping Matrix (1-to-1 Translation)
 
-Every database model, API endpoint, controller logic, and frontend view from `Medstore-mern` is mapped directly into CareConnect's stack:
+Every database model, API endpoint, controller logic, and frontend view from `Medstore-mern` is mapped directly into MedStore's stack:
 
 ### A. Data Models & Schemas
 
-| `Medstore-mern` (Mongoose/MongoDB) | CareConnect Target (`Prisma/PostgreSQL`) | Architectural Enhancement in CareConnect |
+| `Medstore-mern` (Mongoose/MongoDB) | MedStore Target (`Prisma/PostgreSQL`) | Architectural Enhancement in MedStore |
 |---|---|---|
 | `models/Store.js`<br/>(`ownerId`, `storeName`, `ownerName`, `ownerEmail`, `latitude`, `longitude`, `storeAddress`, `addressList`) | `model Store`<br/>(`ownerId`, `storeName`, `ownerName`, `ownerEmail`, `latitude`, `longitude`, `storeAddress`, `city`, `postalCode`) | Adds Admin `verificationStatus` (`PENDING`, `VERIFIED`), `licenseNumber`, `licenseDocumentUrl`, `rating`, relational cascade. |
 | `models/Product.js`<br/>(`storeId`, `productName`, `productDescription`, `productImage`, `productPrice`, `productQuantity`, `productDetails`) | `model Product`<br/>(`storeId`, `name`, `description`, `imageUrl`, `price`, `mrp`, `stockQuantity`, `productDetails`, `category`) | Adds `genericName` (for generic alternatives), `batchNumber`, `expiryDate`, `expiryStatus` (3-tier alerts), `safetyStock`, `maxStockCap` (Anti-Overstock). |
@@ -110,7 +110,7 @@ Every database model, API endpoint, controller logic, and frontend view from `Me
 
 ### B. Controllers & Backend Business Logic
 
-| `Medstore-mern` Controller (`controllers/private.js`) | Target CareConnect Server Action | Key Improvements |
+| `Medstore-mern` Controller (`controllers/private.js`) | Target MedStore Server Action | Key Improvements |
 |---|---|---|
 | `registerstore` (Lines 85–119) | `actions/store.js: registerStoreAction(formData)` | Uses Clerk session auth, validates coordinates, saves address details, flags as `PENDING` for Admin review. |
 | `addproduct` (Lines 123–149) | `actions/store.js: addProductAction(formData)` | Validates seller ownership, computes initial `expiryStatus`, enforces non-negative price/stock with Zod. |
@@ -127,7 +127,7 @@ Every database model, API endpoint, controller logic, and frontend view from `Me
 
 ### C. Client Pages & Visual Components
 
-| `Medstore-mern` React Component | Target CareConnect Component | UI/UX Enhancement |
+| `Medstore-mern` React Component | Target MedStore Component | UI/UX Enhancement |
 |---|---|---|
 | `client/src/pages/createstore` + `CreateStoreMap.js` | `app/(main)/store/onboarding/page.jsx` | Interactive draggable Leaflet map pin, automatic GPS detect button, document upload for drug license. |
 | `client/src/pages/storedashboard` | `app/(main)/store/page.jsx` | Dark tech-health theme, live KPI widgets (Today Revenue, Pending Orders, Low Stock, Expiry Warnings). |
@@ -141,13 +141,13 @@ Every database model, API endpoint, controller logic, and frontend view from `Me
 
 ## 4. Elevated UI/UX Design Specifications
 
-CareConnect's sleek modern aesthetic (dark healthcare theme, teal/cyan glowing accents, high-contrast typography, responsive grids) is carried across all four roles.
+MedStore's sleek modern aesthetic (dark healthcare theme, teal/cyan glowing accents, high-contrast typography, responsive grids) is carried across all four roles.
 
 ### A. Patient Experience (`/` & `/medicines`) — "Tata 1mg Meets Modern Telehealth"
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│  CareConnect Navigation Bar (Logo | Consult | Medicines | Cart | Auth) │
+│  MedStore Navigation Bar (Logo | Consult | Medicines | Cart | Auth)    │
 ├────────────────────────────────────────────────────────────────────────┤
 │  HERO SECTION: DOCTOR CONSULTATION & HEALTH ACTION CARD                │
 │  ┌─────────────────────────────────┐  ┌─────────────────────────────┐  │
@@ -456,7 +456,7 @@ To satisfy continuous quality verification:
 ## 8. High-Value Product Recommendations (Engineering & Product Insights)
 
 1. **Generic Alternative Savings Badge ("Substitute Intelligence")**:
-   - When a doctor prescribes a brand name drug (e.g. *Augmentin 625* at ₹210), CareConnect detects verified bio-equivalent generics (e.g. *Amoxyclav 625* at ₹115) from local Dukaans.
+   - When a doctor prescribes a brand name drug (e.g. *Augmentin 625* at ₹210), MedStore detects verified bio-equivalent generics (e.g. *Amoxyclav 625* at ₹115) from local Dukaans.
    - Presenting an optional *"Save ₹95 with Generic Alternative"* badge increases patient satisfaction and cart conversion by 30-40%.
 2. **Dukaan Expiry Clearance Hub ("Save & Liquidate")**:
    - Provide a specialized "Flash Clearance" shelf for medicines with 30-60 days expiry.

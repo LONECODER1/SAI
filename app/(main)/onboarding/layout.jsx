@@ -3,8 +3,8 @@ import { getCurrentUser } from "@/actions/onboarding";
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Onboarding-CareConnect",
-  description: "complete your profile to get started with CareConnect",
+  title: "Onboarding-MedStore",
+  description: "complete your profile to get started with MedStore",
 };
 
 const OnboardingLayout = async ({ children }) => {
@@ -30,7 +30,7 @@ const OnboardingLayout = async ({ children }) => {
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-3xl md:text-4xl mb-2 gradient-title">
-            Welcome to CareConnect
+            Welcome to MedStore
           </h1>
           <p className="text-muted-foreground text-lg">
             Tell us how you want to use the platform
