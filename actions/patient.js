@@ -38,6 +38,11 @@ export async function getPatientAppointments() {
             imageUrl: true,
           },
         },
+        prescription: {
+          include: {
+            items: true,
+          },
+        },
       },
       orderBy: {
         startTime: "asc",

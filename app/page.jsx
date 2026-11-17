@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { features, creditBenefits, testimonials } from "@/lib/data";
-import { ArrowRight, Check, Stethoscope } from "lucide-react";
+import { ArrowRight, Check, Stethoscope, Pill, Store } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -46,13 +46,25 @@ export default function Home() {
                   </Button>
                 </Link>
 
-                <Link href="/doctor">
+                <Link href="/doctors">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-teal-700/30 hover:bg-muted/80"
+                    className="border-teal-700/30 hover:bg-muted/80 text-white"
                   >
+                    <Stethoscope className="mr-2 h-4 w-4 text-teal-400" />
                     Find Doctors
+                  </Button>
+                </Link>
+
+                <Link href="/medicines">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-teal-700/30 hover:bg-teal-950/40 text-teal-300"
+                  >
+                    <Pill className="mr-2 h-4 w-4 text-teal-400" />
+                    Order Medicines
                   </Button>
                 </Link>
               </div>
