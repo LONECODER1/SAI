@@ -40,32 +40,21 @@ export default function Home() {
                 <Link href="/dashboard">
                   <Button
                     size="lg"
-                    className="bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-900/40"
+                    className="bg-teal-600 text-white hover:bg-teal-700 shadow-xl shadow-teal-900/40 px-8 py-6 text-base font-semibold"
                   >
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    Patient Dashboard
+                    <LayoutDashboard className="mr-2 h-5 w-5" />
+                    Open Unified Dashboard
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
 
-                <Link href="/doctors">
+                <Link href="/pricing">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-teal-700/30 hover:bg-muted/80 text-white"
+                    className="border-teal-700/30 hover:bg-muted/80 text-white px-8 py-6 text-base"
                   >
-                    <Stethoscope className="mr-2 h-4 w-4 text-teal-400" />
-                    Find Doctors
-                  </Button>
-                </Link>
-
-                <Link href="/medicines">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-teal-700/30 hover:bg-teal-950/40 text-teal-300"
-                  >
-                    <Pill className="mr-2 h-4 w-4 text-teal-400" />
-                    Order Medicines
+                    View Pricing & Credits
                   </Button>
                 </Link>
               </div>

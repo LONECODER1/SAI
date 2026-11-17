@@ -291,16 +291,15 @@ export default function DashboardClient({
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href="/doctors">
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-teal-800/40 text-teal-300 hover:bg-teal-900/30 text-xs"
-              >
-                <Stethoscope className="h-3.5 w-3.5 mr-1" />
-                Find Specialist
-              </Button>
-            </Link>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleTabChange("doctors")}
+              className="border-teal-800/40 text-teal-300 hover:bg-teal-900/30 text-xs"
+            >
+              <Stethoscope className="h-3.5 w-3.5 mr-1" />
+              Find Specialist
+            </Button>
 
             <Button
               size="sm"
@@ -397,11 +396,13 @@ export default function DashboardClient({
                     <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
                       Need medical advice? Book an immediate video appointment with a verified specialist.
                     </p>
-                    <Link href="/doctors">
-                      <Button size="sm" className="mt-3 bg-teal-600 hover:bg-teal-700 text-xs">
-                        Book a Doctor (10 min)
-                      </Button>
-                    </Link>
+                    <Button
+                      size="sm"
+                      onClick={() => handleTabChange("doctors")}
+                      className="mt-3 bg-teal-600 hover:bg-teal-700 text-xs"
+                    >
+                      Book a Doctor (10 min)
+                    </Button>
                   </div>
                 )}
 
@@ -635,16 +636,55 @@ export default function DashboardClient({
               </p>
             </div>
 
-            <Link href="/doctors">
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs gap-1.5">
-                <Stethoscope className="h-4 w-4" />
-                Book New Doctor Appointment
-              </Button>
-            </Link>
+            <Badge variant="outline" className="border-teal-700/40 text-teal-300 text-xs py-1 px-3">
+              <Sparkles className="h-3 w-3 mr-1 text-teal-400" />
+              Direct In-Dashboard Scheduling
+            </Badge>
+          </div>
+
+          {/* Embedded Specialty Booking Grid */}
+          <div className="p-5 rounded-2xl bg-card border border-teal-900/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Stethoscope className="h-4 w-4 text-teal-400" />
+                  Consult a Specialist by Medical Discipline
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Select a category to view verified doctors and schedule an instant video slot.
+                </p>
+              </div>
+              <Badge variant="outline" className="border-teal-700 text-teal-300 text-xs">
+                {SPECIALTIES.length} Disciplines Available
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pt-1">
+              {SPECIALTIES.map((specialty) => (
+                <Link
+                  key={specialty.name}
+                  href={`/doctors/${encodeURIComponent(specialty.name)}`}
+                  className="group"
+                >
+                  <Card className="hover:border-teal-700/50 hover:bg-teal-950/20 transition-all cursor-pointer border-teal-900/20 h-full p-3 text-center flex flex-col items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-teal-900/30 flex items-center justify-center mb-1.5 text-teal-400 group-hover:scale-110 transition-transform">
+                      <div>{specialty.icon}</div>
+                    </div>
+                    <span className="text-xs font-semibold text-white">
+                      {specialty.name}
+                    </span>
+                  </Card>
+                </Link>
+              ))}
+            </div>
           </div>
 
           {appointments.length > 0 ? (
             <div className="space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 pt-2">
+                <Calendar className="h-4 w-4 text-teal-400" />
+                Scheduled Consultations ({appointments.length})
+              </h3>
               {appointments.map((appointment) => (
                 <div key={appointment.id} className="relative">
                   <AppointmentCard
@@ -669,19 +709,14 @@ export default function DashboardClient({
               ))}
             </div>
           ) : (
-            <Card className="border-teal-900/20 bg-card py-12 text-center">
-              <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <h3 className="text-lg font-bold text-white mb-2">
-                No consultations scheduled yet
+            <Card className="border-teal-900/20 bg-card py-10 text-center">
+              <Calendar className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+              <h3 className="text-base font-bold text-white mb-1">
+                No active appointments scheduled
               </h3>
-              <p className="text-muted-foreground text-xs max-w-md mx-auto mb-5">
-                Connect with our certified specialists in Cardiology, Dermatology, Pediatrics, and General Medicine via encrypted video.
+              <p className="text-muted-foreground text-xs max-w-md mx-auto">
+                Choose any specialty discipline above to connect with a certified physician in under 10 minutes.
               </p>
-              <Link href="/doctors">
-                <Button className="bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs">
-                  Browse Certified Doctors
-                </Button>
-              </Link>
             </Card>
           )}
         </div>

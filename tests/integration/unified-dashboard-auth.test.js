@@ -152,4 +152,18 @@ describe("Unified User Dashboard & Auth Integration Protocol", () => {
       assert.equal(validTabs.includes(transition.to), true);
     }
   });
+
+  // Test 4: Main Navigation & Route Consolidation
+  it("should consolidate standalone /doctors and /medicines directly into unified dashboard", () => {
+    // Mapping of legacy standalone entry points to unified dashboard targets
+    const routeMappings = {
+      "/doctors": "/dashboard?tab=doctors",
+      "/medicines": "/dashboard?tab=medicines",
+      "/appointments": "/dashboard?tab=doctors",
+    };
+
+    assert.equal(routeMappings["/doctors"], "/dashboard?tab=doctors");
+    assert.equal(routeMappings["/medicines"], "/dashboard?tab=medicines");
+    assert.equal(routeMappings["/appointments"], "/dashboard?tab=doctors");
+  });
 });

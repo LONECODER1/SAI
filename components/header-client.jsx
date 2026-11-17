@@ -52,20 +52,6 @@ export default function HeaderClient({ user }) {
           </Link>
 
           <div className="hidden md:flex items-center gap-4 text-sm font-medium">
-            <Link
-              href="/doctors"
-              className="text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
-            >
-              <Stethoscope className="h-4 w-4 text-teal-400" />
-              Find Doctors
-            </Link>
-            <Link
-              href="/medicines"
-              className="text-muted-foreground hover:text-white transition-colors flex items-center gap-1.5"
-            >
-              <Pill className="h-4 w-4 text-teal-400" />
-              Medicines (Dukaan)
-            </Link>
             {user?.role === "PATIENT" && (
               <Link
                 href="/dashboard"

@@ -1,57 +1,9 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import Link from "next/link";
-import React from "react";
-import { LayoutDashboard } from "lucide-react";
-
-import { Card, CardContent } from "@/components/ui/card";
-import { SPECIALTIES } from "@/lib/specialities";
-
-const SpecialitiesPage = () => {
-  return (
-    <>
-      <div className="flex items-center justify-between mb-4 pb-2 border-b border-teal-900/30">
-        <Link
-          href="/dashboard?tab=doctors"
-          className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1.5 transition-colors font-medium bg-teal-950/40 border border-teal-800/40 px-3 py-1.5 rounded-lg"
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          <span>Switch to Unified Patient Dashboard (Doctor & Medicines Dual Interface)</span>
-        </Link>
-      </div>
-
-      <div className="flex flex-col items-center justify-center mb-8 text-center">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 gradient-title">
-          Find Your Doctor
-        </h1>
-
-        <p className="text-muted-foreground text-lg">
-          Browse by specialty or view all available healthcare providers
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {SPECIALTIES.map((specialty) => (
-          <Link
-            key={specialty.name}
-            href={`/doctors/${specialty.name}`}
-          >
-            <Card className="hover:border-teal-700/40 transition-all cursor-pointer border-teal-900/20 h-full">
-              <CardContent className="p-6 flex flex-col items-center justify-center text-center h-full">
-                <div className="w-12 h-12 rounded-full bg-teal-900/20 flex items-center justify-center mb-4">
-                  <div>{specialty.icon}</div>
-                </div>
-
-                <h3 className="font-medium text-white">
-                  {specialty.name}
-                </h3>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
-    </>
-  );
-};
-
-export default SpecialitiesPage;
+/**
+ * The standalone /doctors route is unified into the Single Patient Dashboard.
+ * Redirects directly to /dashboard with the Doctor Consultations interface active.
+ */
+export default function DoctorsRouteRedirect() {
+  redirect("/dashboard?tab=doctors");
+}
