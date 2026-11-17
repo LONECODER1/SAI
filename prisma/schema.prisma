@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -18,7 +16,7 @@ model User {
   email       String   @unique
   name        String?
   imageUrl    String?
-  role        UserRole @default(UNASSIGNED) // UNASSIGNED, PATIENT, DOCTOR, ADMIN
+  role        UserRole @default(UNASSIGNED) // UNASSIGNED, PATIENT, DOCTOR, SELLER, ADMIN
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -33,17 +31,24 @@ model User {
   verificationStatus VerificationStatus? @default(PENDING)
 
   // Relations
-  patientAppointments Appointment[]       @relation("PatientAppointments")
-  doctorAppointments  Appointment[]       @relation("DoctorAppointments")
-  availabilities      Availability[]
-  transactions        CreditTransaction[]
-  payouts             Payout[]
+  patientAppointments   Appointment[]       @relation("PatientAppointments")
+  doctorAppointments    Appointment[]       @relation("DoctorAppointments")
+  availabilities        Availability[]
+  transactions          CreditTransaction[]
+  payouts               Payout[]
+  prescriptionsIssued   Prescription[]     @relation("DoctorPrescriptions")
+  prescriptionsReceived Prescription[]     @relation("PatientPrescriptions")
+  
+  // Store / Dukaan relation (Seller owns a store)
+  store                 Store?
+  ordersPlaced          Order[]            @relation("PatientOrders")
 }
 
 enum UserRole {
   UNASSIGNED
   PATIENT
   DOCTOR
+  SELLER
   ADMIN
 }
 
@@ -90,6 +95,9 @@ model Appointment {
   // Video session fields
   videoSessionId    String? // Vonage Video API Session ID
   videoSessionToken String? // Optional: Can store tokens if needed
+
+  // E-Prescription relation
+  prescription Prescription?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,4 +152,209 @@ model Payout {
 enum PayoutStatus {
   PROCESSING
   PROCESSED
+}
+
+// =============================================================
+// PHARMACY STORE ("DUKAAN") & PRODUCT INVENTORY (MEDSTORE CORE)
+// =============================================================
+
+enum ExpiryStatus {
+  SAFE
+  APPROACHING_EXPIRY
+  CRITICAL_EXPIRY
+  EXPIRED
+}
+
+model Store {
+  id                 String             @id @default(uuid())
+  ownerId            String             @unique
+  owner              User               @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  storeName          String
+  ownerName          String
+  ownerEmail         String
+  phone              String
+  licenseNumber      String             // Drug Retail License / GST
+  licenseDocumentUrl String?            // Uploaded license document URL
+  storeAddress       String             @db.Text
+  city               String
+  postalCode         String?
+  latitude           Float
+  longitude          Float
+
+  verificationStatus VerificationStatus @default(PENDING)
+  isActive           Boolean            @default(true)
+  rating             Float              @default(5.0)
+
+  products           Product[]
+  orders             Order[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([latitude, longitude])
+  @@index([verificationStatus])
+}
+
+model Product {
+  id                   String        @id @default(uuid())
+  storeId              String
+  store                Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  name                 String        // Medicine Brand Name (e.g. Augmentin 625 Duo)
+  genericName          String?       // Active formulation (e.g. Amoxicillin + Clavulanic Acid)
+  category             String        // Antibiotics, Pain Relief, Diabetes, Cardiac, etc.
+  description          String?       @db.Text
+  dosageForm           String?       // Tablet, Syrup, Capsule, Injection, Ointment
+  strength             String?       // 500mg, 10ml, etc.
+  batchNumber          String?
+  price                Float         // Selling Price
+  mrp                  Float?        // Maximum Retail Price (for % discount badge)
+  stockQuantity        Int           @default(0)
+  
+  // Anti-Overstocking & Inventory Control
+  safetyStock          Int           @default(15) // Reorder Point threshold
+  maxStockCap          Int           @default(120) // Upper limit ceiling
+  leadTimeDays         Int           @default(2)  // Supplier delivery lead time
+  expiryDate           DateTime?
+  expiryStatus         ExpiryStatus  @default(SAFE)
+
+  // Core Feature 2: Dukaan Expiry Flash-Sale / Clearance Hub
+  isFlashSale          Boolean       @default(false)
+  flashSaleDiscount    Float?        // e.g. 50.0 for 50% discount
+  flashSalePrice       Float?        // Discounted clearance price
+
+  imageUrl             String?
+  productDetails       String?       @db.Text
+  prescriptionRequired Boolean       @default(false)
+  isActive             Boolean       @default(true)
+
+  orderItems           OrderItem[]
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  @@index([storeId, name])
+  @@index([genericName])
+  @@index([expiryDate])
+  @@index([isFlashSale])
+}
+
+// =============================================================
+// DIGITAL PRESCRIPTION (DOCTOR -> PATIENT AUTO-ROUTING)
+// =============================================================
+
+model Prescription {
+  id            String             @id @default(uuid())
+  appointmentId String             @unique
+  appointment   Appointment        @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  doctorId      String
+  doctor        User               @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+
+  patientId     String
+  patient       User               @relation("PatientPrescriptions", fields: [patientId], references: [id])
+
+  diagnosis     String?            @db.Text
+  instructions  String?            @db.Text
+  isFulfilled   Boolean            @default(false)
+
+  items         PrescriptionItem[]
+  orders        Order[]
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([patientId, createdAt])
+}
+
+model PrescriptionItem {
+  id             String       @id @default(uuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  medicineName   String       // Prescribed brand or active medicine
+  genericName    String?      // Bio-equivalent active molecule
+  dosage         String       // e.g. "1 Tab twice daily after meals"
+  durationDays   Int          // e.g. 5
+  quantity       Int          // e.g. 10 tablets
+  instructions   String?      // Special administration notes
+}
+
+// =============================================================
+// ORDERS & PHARMACY CHECKOUT (SINGLE & MULTI-ITEM BASKETS)
+// =============================================================
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryType {
+  HOME_DELIVERY
+  STORE_PICKUP
+}
+
+model Order {
+  id              String        @id @default(uuid())
+  orderNumber     String        @unique // e.g. CC-ORD-90231
+
+  patientId       String
+  patient         User          @relation("PatientOrders", fields: [patientId], references: [id])
+
+  storeId         String
+  store           Store         @relation(fields: [storeId], references: [id])
+
+  prescriptionId  String?
+  prescription    Prescription? @relation(fields: [prescriptionId], references: [id])
+
+  status          OrderStatus   @default(PENDING)
+  deliveryType    DeliveryType  @default(HOME_DELIVERY)
+  deliveryAddress String        @db.Text
+  customerPhone   String?
+
+  subtotal        Float
+  deliveryFee     Float         @default(0.0)
+  totalAmount     Float
+
+  items           OrderItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([storeId, status])
+  @@index([patientId, createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(uuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id])
+
+  quantity   Int
+  unitPrice  Float
+  totalPrice Float
+}
+
+// =============================================================
+// LOCAL DEMAND INTELLIGENCE SIGNALS
+// =============================================================
+
+model DemandSignal {
+  id           String   @id @default(uuid())
+  medicineName String
+  genericName  String?
+  latitude     Float
+  longitude    Float
+  signalType   String   // "PRESCRIPTION", "SEARCH", "ORDER"
+  weight       Float    @default(1.0)
+  createdAt    DateTime @default(now())
+
+  @@index([medicineName, createdAt])
+  @@index([latitude, longitude])
 }
