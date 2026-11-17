@@ -25,7 +25,7 @@ export async function setUserRole(formData) {
 
     const role = formData.get("role");
 
-    if (!role || !["PATIENT", "DOCTOR"].includes(role)) {
+    if (!role || !["PATIENT", "DOCTOR", "SELLER"].includes(role)) {
       return { success: false, error: "Invalid role selection" };
     }
 
@@ -87,6 +87,57 @@ export async function setUserRole(formData) {
       return {
         success: true,
         redirect: "/doctor/verification",
+      };
+    }
+
+    // ===========================
+    // SELLER (PHARMACY STORE)
+    // ===========================
+    if (role === "SELLER") {
+      const storeName = formData.get("storeName");
+      const phone = formData.get("phone");
+      const licenseNumber = formData.get("licenseNumber");
+      const licenseDocumentUrl = formData.get("licenseDocumentUrl") || null;
+      const storeAddress = formData.get("storeAddress");
+      const city = formData.get("city") || "City";
+      const postalCode = formData.get("postalCode") || null;
+      const latitude = parseFloat(formData.get("latitude") || "28.6139");
+      const longitude = parseFloat(formData.get("longitude") || "77.2090");
+
+      if (!storeName || !phone || !licenseNumber || !storeAddress) {
+        throw new Error("Store Name, Phone, License Number, and Address are required");
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { clerkUserId: userId },
+          data: { role: "SELLER" },
+        });
+
+        await tx.store.create({
+          data: {
+            ownerId: user.id,
+            storeName,
+            ownerName: user.name || "Store Owner",
+            ownerEmail: user.email,
+            phone,
+            licenseNumber,
+            licenseDocumentUrl,
+            storeAddress,
+            city,
+            postalCode,
+            latitude,
+            longitude,
+            verificationStatus: "PENDING",
+          },
+        });
+      });
+
+      revalidatePath("/");
+
+      return {
+        success: true,
+        redirect: "/store/verification",
       };
     }
   } catch (error) {
